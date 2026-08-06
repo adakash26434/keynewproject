@@ -4,9 +4,12 @@ class ProfileController
     public static function index(): void
     {
         Auth::requireAuth();
-        $user      = Database::fetch('SELECT * FROM users WHERE id = ?', [userId()]);
+        $uid = userId();
+        $user = Database::fetch('SELECT * FROM users WHERE id = ?', [$uid]);
+        $sessions = Auth::loginSessions($uid, 10);
+        $currentSessionToken = (string) ($_SESSION['login_session_token'] ?? '');
         $pageTitle = 'Profile';
-        view('pages/profile', compact('user', 'pageTitle'));
+        view('pages/profile', compact('user', 'sessions', 'currentSessionToken', 'pageTitle'));
     }
 
     public static function update(): void

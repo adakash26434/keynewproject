@@ -87,6 +87,8 @@ class Auth
         if (!self::check()) {
             redirect('/login');
         }
+
+        self::validateAndTouchLoginSession();
     }
 
     public static function requireGuest(): void
@@ -111,16 +113,87 @@ class Auth
         session_regenerate_id(true);
         $_SESSION['totp_passed'] = true;
         unset($_SESSION['awaiting_totp_user_id']);
+
+        self::registerLoginSession((int) ($_SESSION['user_id'] ?? 0));
     }
 
     public static function logout(): void
     {
+        $userId = (int) ($_SESSION['user_id'] ?? 0);
+        $sessionToken = (string) ($_SESSION['login_session_token'] ?? '');
+
+        if ($userId > 0 && $sessionToken !== '') {
+            Database::execute(
+                'DELETE FROM login_sessions WHERE user_id = ? AND session_token = ?',
+                [$userId, $sessionToken]
+            );
+        }
+
         $_SESSION = [];
         if (ini_get('session.use_cookies')) {
             $params = session_get_cookie_params();
             setcookie(session_name(), '', time() - 42000, $params['path'], $params['domain'], $params['secure'], $params['httponly']);
         }
         session_destroy();
+    }
+
+    public static function loginSessions(int $userId, int $limit = 8): array
+    {
+        return Database::fetchAll(
+            'SELECT session_token, user_agent, ip_address, created_at, last_active
+             FROM login_sessions
+             WHERE user_id = ?
+             ORDER BY last_active DESC
+             LIMIT ' . (int) max(1, min($limit, 20)),
+            [$userId]
+        );
+    }
+
+    private static function registerLoginSession(int $userId): void
+    {
+        if ($userId <= 0) {
+            return;
+        }
+
+        $token = bin2hex(random_bytes(24));
+        $_SESSION['login_session_token'] = $token;
+
+        Database::execute(
+            'INSERT INTO login_sessions (user_id, session_token, user_agent, ip_address, last_active)
+             VALUES (?, ?, ?, ?, datetime(\'now\'))',
+            [
+                $userId,
+                $token,
+                substr((string) ($_SERVER['HTTP_USER_AGENT'] ?? 'Unknown'), 0, 255),
+                substr(self::clientIp(), 0, 100),
+            ]
+        );
+    }
+
+    private static function validateAndTouchLoginSession(): void
+    {
+        $userId = (int) ($_SESSION['user_id'] ?? 0);
+        $token  = (string) ($_SESSION['login_session_token'] ?? '');
+
+        if ($userId <= 0 || $token === '') {
+            self::logout();
+            redirect('/login');
+        }
+
+        $row = Database::fetch(
+            'SELECT id FROM login_sessions WHERE user_id = ? AND session_token = ? LIMIT 1',
+            [$userId, $token]
+        );
+
+        if (!$row) {
+            self::logout();
+            redirect('/login');
+        }
+
+        Database::execute(
+            'UPDATE login_sessions SET last_active = datetime(\'now\') WHERE user_id = ? AND session_token = ?',
+            [$userId, $token]
+        );
     }
 
     public static function hashPassword(string $password): string

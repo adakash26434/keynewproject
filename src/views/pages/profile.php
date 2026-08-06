@@ -137,6 +137,44 @@
     </div>
   </div>
 
+  <!-- Recent Sessions -->
+  <div class="card p-6">
+    <h3 class="font-semibold text-slate-900 mb-4 flex items-center gap-2">
+      <svg class="w-4 h-4 text-slate-500" fill="none" viewBox="0 0 24 24" stroke="currentColor"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M9.75 17L9 20l-1 1h8l-1-1-.75-3M3 13h18M5 17h14a2 2 0 002-2V5a2 2 0 00-2-2H5a2 2 0 00-2 2v10a2 2 0 002 2z"/></svg>
+      Recent Sessions
+    </h3>
+
+    <?php if (empty($sessions)): ?>
+      <p class="text-sm text-slate-500">No recent session data available yet.</p>
+    <?php else: ?>
+      <div class="space-y-2">
+        <?php foreach ($sessions as $s): ?>
+          <?php
+            $isCurrent = ($currentSessionToken !== '' && $s['session_token'] === $currentSessionToken);
+            $ua = trim((string) ($s['user_agent'] ?? 'Unknown device'));
+            $ip = trim((string) ($s['ip_address'] ?? 'Unknown IP'));
+            $lastActiveRaw = (string) ($s['last_active'] ?? '');
+            $lastActiveText = $lastActiveRaw;
+            try {
+              $lastActiveText = (new DateTime($lastActiveRaw))->format('M d, Y h:i A');
+            } catch (Exception) {
+            }
+          ?>
+          <div class="p-3 bg-slate-50 rounded-xl border border-slate-100">
+            <div class="flex items-center justify-between gap-2">
+              <p class="text-sm font-medium text-slate-900 truncate"><?= e($ua) ?></p>
+              <?php if ($isCurrent): ?>
+                <span class="badge bg-green-100 text-green-700">Current</span>
+              <?php endif; ?>
+            </div>
+            <p class="text-xs text-slate-500 mt-1">IP: <?= e($ip) ?></p>
+            <p class="text-xs text-slate-500">Last active: <?= e($lastActiveText) ?></p>
+          </div>
+        <?php endforeach; ?>
+      </div>
+    <?php endif; ?>
+  </div>
+
   <!-- Danger Zone -->
   <div class="card p-6 border-red-200">
     <h3 class="font-semibold text-red-700 mb-3 flex items-center gap-2">
