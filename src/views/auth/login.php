@@ -9,18 +9,27 @@
 <script src="https://cdn.tailwindcss.com"></script>
 <script defer src="https://cdn.jsdelivr.net/npm/alpinejs@3.x.x/dist/cdn.min.js"></script>
 <style>body { font-family: 'Plus Jakarta Sans', sans-serif; }</style>
+<?php
+$siteName = siteSetting('site_name', APP_NAME);
+$siteTagline = siteSetting('site_tagline', 'Your secure digital vault');
+$siteLogoUrl = siteSetting('logo_url', '');
+?>
 </head>
 <body class="bg-[#F3F5F7] min-h-full flex items-center justify-center py-12 px-4">
 <div class="w-full max-w-md">
   <!-- Logo -->
   <div class="flex flex-col items-center mb-8">
+    <?php if ($siteLogoUrl !== ''): ?>
+    <img src="<?= e($siteLogoUrl) ?>" alt="<?= e($siteName) ?> logo" class="w-12 h-12 rounded-2xl object-cover mb-4 border border-slate-200 bg-white">
+    <?php else: ?>
     <div class="w-12 h-12 bg-blue-600 rounded-2xl flex items-center justify-center mb-4 shadow-lg shadow-blue-200">
       <svg class="w-6 h-6 text-white" fill="none" viewBox="0 0 24 24" stroke="currentColor" stroke-width="2.5">
         <path stroke-linecap="round" stroke-linejoin="round" d="M15.75 5.25a3 3 0 013 3m3 0a6 6 0 01-7.029 5.912c-.563-.097-1.159.026-1.563.43L10.5 17.25H8.25v2.25H6v2.25H2.25v-2.818c0-.597.237-1.17.659-1.591l6.499-6.499c.404-.404.527-1 .43-1.563A6 6 0 1121.75 8.25z"/>
       </svg>
     </div>
-    <h1 class="text-2xl font-bold text-slate-900">Personal Key Wallet</h1>
-    <p class="text-sm text-slate-500 mt-1">Your secure digital vault</p>
+    <?php endif; ?>
+    <h1 class="text-2xl font-bold text-slate-900"><?= e($siteName) ?></h1>
+    <p class="text-sm text-slate-500 mt-1"><?= e($siteTagline) ?></p>
   </div>
 
   <!-- Card -->

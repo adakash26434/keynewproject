@@ -50,7 +50,7 @@ class Database
             if (self::isMySql()) {
                 $host = (string) (getenv('DB_HOST') ?: '127.0.0.1');
                 $port = (string) (getenv('DB_PORT') ?: '3306');
-                $name = (string) (getenv('DB_NAME') ?: 'key_wallet');
+                $name = (string) (getenv('DB_NAME') ?: 'aakash_key_vault');
                 $user = (string) (getenv('DB_USER') ?: 'root');
                 $pass = (string) (getenv('DB_PASS') ?: '');
                 $charset = (string) (getenv('DB_CHARSET') ?: 'utf8mb4');
@@ -83,10 +83,12 @@ class Database
     {
         if (self::isMySql()) {
             self::migrateMySql($db);
+            self::ensureUsersSchema($db);
             return;
         }
 
         self::migrateSqlite($db);
+        self::ensureUsersSchema($db);
     }
 
     private static function migrateSqlite(PDO $db): void
@@ -99,6 +101,7 @@ class Database
                 password_hash TEXT NOT NULL,
                 totp_secret TEXT,
                 totp_verified INTEGER NOT NULL DEFAULT 0,
+                is_superadmin INTEGER NOT NULL DEFAULT 0,
                 bio TEXT,
                 phone TEXT,
                 location TEXT,
@@ -196,6 +199,13 @@ class Database
                 created_at TEXT NOT NULL DEFAULT (datetime('now'))
             );
 
+            CREATE TABLE IF NOT EXISTS site_settings (
+                setting_key TEXT PRIMARY KEY,
+                setting_value TEXT NOT NULL,
+                created_at TEXT NOT NULL DEFAULT (datetime('now')),
+                updated_at TEXT NOT NULL DEFAULT (datetime('now'))
+            );
+
             CREATE INDEX IF NOT EXISTS idx_passwords_user_title ON passwords(user_id, title);
             CREATE INDEX IF NOT EXISTS idx_passwords_user_category ON passwords(user_id, category);
             CREATE INDEX IF NOT EXISTS idx_documents_user_title ON documents(user_id, title);
@@ -221,6 +231,7 @@ class Database
                 password_hash VARCHAR(255) NOT NULL,
                 totp_secret VARCHAR(255) DEFAULT NULL,
                 totp_verified TINYINT(1) NOT NULL DEFAULT 0,
+                is_superadmin TINYINT(1) NOT NULL DEFAULT 0,
                 bio TEXT,
                 phone VARCHAR(100) DEFAULT NULL,
                 location VARCHAR(255) DEFAULT NULL,
@@ -347,7 +358,54 @@ class Database
                 KEY idx_password_history_user_created (user_id, created_at),
                 CONSTRAINT fk_password_history_user FOREIGN KEY (user_id) REFERENCES users(id) ON DELETE CASCADE
             ) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_unicode_ci;
+
+            CREATE TABLE IF NOT EXISTS site_settings (
+                setting_key VARCHAR(100) NOT NULL,
+                setting_value TEXT NOT NULL,
+                created_at DATETIME NOT NULL DEFAULT CURRENT_TIMESTAMP,
+                updated_at DATETIME NOT NULL DEFAULT CURRENT_TIMESTAMP ON UPDATE CURRENT_TIMESTAMP,
+                PRIMARY KEY (setting_key)
+            ) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_unicode_ci;
         ");
+    }
+
+    private static function ensureUsersSchema(PDO $db): void
+    {
+        if (self::isSqlite()) {
+            $cols = $db->query("PRAGMA table_info(users)");
+            $hasSuperAdmin = false;
+            if ($cols instanceof PDOStatement) {
+                foreach ($cols->fetchAll(PDO::FETCH_ASSOC) as $col) {
+                    if (($col['name'] ?? '') === 'is_superadmin') {
+                        $hasSuperAdmin = true;
+                        break;
+                    }
+                }
+            }
+
+            if (!$hasSuperAdmin) {
+                $db->exec("ALTER TABLE users ADD COLUMN is_superadmin INTEGER NOT NULL DEFAULT 0");
+            }
+
+            return;
+        }
+
+        if (!self::isMySql()) {
+            return;
+        }
+
+        $stmt = $db->prepare(
+            "SELECT COUNT(*) FROM information_schema.COLUMNS
+             WHERE TABLE_SCHEMA = DATABASE()
+             AND TABLE_NAME = 'users'
+             AND COLUMN_NAME = 'is_superadmin'"
+        );
+        $stmt->execute();
+        $exists = (int) $stmt->fetchColumn() > 0;
+
+        if (!$exists) {
+            $db->exec("ALTER TABLE users ADD COLUMN is_superadmin TINYINT(1) NOT NULL DEFAULT 0 AFTER totp_verified");
+        }
     }
 
     public static function query(string $sql, array $params = []): PDOStatement

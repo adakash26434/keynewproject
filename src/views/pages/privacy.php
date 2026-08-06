@@ -11,7 +11,7 @@
       ['title'=>'Data Storage','body'=>'All data is stored locally in a SQLite database on your server. We do not send your data to any third-party service. If you are using the self-hosted version, your data never leaves your own server.'],
       ['title'=>'Session Security','body'=>'Sessions expire after 8 hours of inactivity. CSRF tokens are validated on all form submissions. Cookies are marked HttpOnly and SameSite=Lax.'],
       ['title'=>'Your Rights','body'=>'You can delete your account and all associated data at any time. You can export your data by contacting the administrator. We do not share your data with third parties.'],
-      ['title'=>'Contact','body'=>'For privacy concerns, please contact the system administrator of your Key Wallet installation.'],
+      ['title'=>'Contact','body'=>'For privacy concerns, please contact the system administrator of your Aakash Key Vault installation.'],
     ];
     foreach ($sections as $s):
     ?>

@@ -94,7 +94,7 @@ function failPreflight(array $errors): never
     exit;
 }
 
-define('APP_NAME', 'Personal Key Wallet');
+define('APP_NAME', 'Aakash Key Vault');
 define('APP_VERSION', '1.0.0');
 define('BASE_PATH', __DIR__ . '/..');
 define('DATA_PATH', BASE_PATH . '/data');

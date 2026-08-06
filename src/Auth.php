@@ -71,10 +71,17 @@ class Auth
             return null;
         }
         return [
-            'id'    => $_SESSION['user_id'],
-            'email' => $_SESSION['user_email'],
-            'name'  => $_SESSION['user_name'],
+            'id'            => $_SESSION['user_id'],
+            'email'         => $_SESSION['user_email'],
+            'name'          => $_SESSION['user_name'],
+            'is_superadmin' => !empty($_SESSION['user_is_superadmin']),
         ];
+    }
+
+    public static function isSuperAdmin(): bool
+    {
+        $user = self::user();
+        return $user !== null && !empty($user['is_superadmin']);
     }
 
     public static function check(): bool
@@ -98,6 +105,15 @@ class Auth
         }
     }
 
+    public static function requireSuperAdmin(): void
+    {
+        self::requireAuth();
+        if (!self::isSuperAdmin()) {
+            http_response_code(403);
+            die('Forbidden');
+        }
+    }
+
     public static function login(array $user): void
     {
         session_regenerate_id(true);
@@ -105,8 +121,80 @@ class Auth
         $_SESSION['user_id']    = $user['id'];
         $_SESSION['user_email'] = $user['email'];
         $_SESSION['user_name']  = $user['name'];
+        $_SESSION['user_is_superadmin'] = !empty($user['is_superadmin']);
         $_SESSION['totp_passed'] = false;
         $_SESSION['awaiting_totp_user_id'] = $user['id'];
+    }
+
+    public static function ensureOwnerSuperAdminFromEnv(): void
+    {
+        $email = strtolower(trim((string) getenv('SUPERADMIN_EMAIL')));
+        $plainPassword = (string) getenv('SUPERADMIN_PASSWORD');
+        $name = trim((string) getenv('SUPERADMIN_NAME'));
+
+        if ($email === '' || $plainPassword === '') {
+            return;
+        }
+        if (!filter_var($email, FILTER_VALIDATE_EMAIL)) {
+            return;
+        }
+        if (strlen($plainPassword) < 8) {
+            return;
+        }
+        if ($name === '') {
+            $name = 'Project Owner';
+        }
+
+        $existing = Database::fetch('SELECT * FROM users WHERE email = ? LIMIT 1', [$email]);
+        $secret = Totp::generateSecret();
+
+        if (!$existing) {
+            $hash = self::hashPassword($plainPassword);
+            Database::execute(
+                'INSERT INTO users (name, email, password_hash, totp_secret, totp_verified, is_superadmin) VALUES (?, ?, ?, ?, 0, 1)',
+                [$name, $email, $hash, $secret]
+            );
+
+            $created = Database::fetch('SELECT id, password_hash FROM users WHERE email = ? LIMIT 1', [$email]);
+            if ($created) {
+                self::recordPasswordHistory((int) $created['id'], (string) $created['password_hash']);
+            }
+            return;
+        }
+
+        $updates = [];
+        $params = [];
+
+        if ((int) ($existing['is_superadmin'] ?? 0) !== 1) {
+            $updates[] = 'is_superadmin = 1';
+        }
+
+        $existingHash = (string) ($existing['password_hash'] ?? '');
+        if ($existingHash === '' || !self::verifyPassword($plainPassword, $existingHash)) {
+            $updates[] = 'password_hash = ?';
+            $params[] = self::hashPassword($plainPassword);
+        }
+
+        if (trim((string) ($existing['totp_secret'] ?? '')) === '') {
+            $updates[] = 'totp_secret = ?';
+            $params[] = $secret;
+        }
+
+        if (!empty($updates)) {
+            $updates[] = 'updated_at = ' . Database::nowExpression();
+            $params[] = $existing['id'];
+            Database::execute(
+                'UPDATE users SET ' . implode(', ', $updates) . ' WHERE id = ?',
+                $params
+            );
+
+            if (in_array('password_hash = ?', $updates, true)) {
+                $fresh = Database::fetch('SELECT password_hash FROM users WHERE id = ? LIMIT 1', [$existing['id']]);
+                if ($fresh) {
+                    self::recordPasswordHistory((int) $existing['id'], (string) $fresh['password_hash']);
+                }
+            }
+        }
     }
 
     public static function completeTwoFactor(): void

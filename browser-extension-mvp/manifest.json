@@ -1,11 +1,11 @@
 {
   "manifest_version": 3,
-  "name": "Key Wallet Quick Access",
+  "name": "Aakash Key Vault Quick Access",
   "version": "0.1.0",
-  "description": "Quick launch and lightweight search helper for Personal Key Wallet.",
+  "description": "Quick launch and lightweight search helper for Aakash Key Vault.",
   "action": {
     "default_popup": "popup.html",
-    "default_title": "Key Wallet"
+    "default_title": "Aakash Key Vault"
   },
   "permissions": ["storage", "tabs", "activeTab", "scripting"],
   "host_permissions": ["http://*/*", "https://*/*"]

@@ -29,8 +29,9 @@ class Totp
         return false;
     }
 
-    public static function getQrUri(string $secret, string $email, string $issuer = 'Key Wallet'): string
+    public static function getQrUri(string $secret, string $email, ?string $issuer = null): string
     {
+        $issuer = $issuer !== null && trim($issuer) !== '' ? $issuer : APP_NAME;
         $label = rawurlencode($issuer . ':' . $email);
         return "otpauth://totp/{$label}?secret={$secret}&issuer=" . rawurlencode($issuer) . '&digits=6&period=30';
     }

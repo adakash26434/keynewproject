@@ -346,7 +346,7 @@ function pwnedPasswordCount(string $password): ?int
                 'method' => 'GET',
                 'timeout' => 4,
                 'ignore_errors' => true,
-                'header' => "User-Agent: KeyWallet/1.0\r\nAdd-Padding: true\r\n",
+                'header' => "User-Agent: AakashKeyVault/1.0\r\nAdd-Padding: true\r\n",
             ],
         ]);
 
@@ -535,4 +535,82 @@ function sendDailySmartAlertDigest(int $userId, array $alerts): void
             ['user_id' => $userId, 'count' => count($alerts)]
         );
     }
+}
+
+function siteSettingsDefaults(): array
+{
+    return [
+        'site_name' => APP_NAME,
+        'site_tagline' => 'Your secure digital vault',
+        'logo_url' => '',
+        'support_email' => '',
+        'allow_signup' => '1',
+        'maintenance_notice' => '',
+    ];
+}
+
+function siteSettings(bool $fresh = false): array
+{
+    $cacheKey = 'site:settings:v1';
+    if (!$fresh) {
+        $cached = cacheGet($cacheKey, 120);
+        if (is_array($cached) && !empty($cached)) {
+            return $cached;
+        }
+    }
+
+    $defaults = siteSettingsDefaults();
+    $rows = Database::fetchAll('SELECT setting_key, setting_value FROM site_settings');
+    foreach ($rows as $row) {
+        $k = (string) ($row['setting_key'] ?? '');
+        if ($k === '' || !array_key_exists($k, $defaults)) {
+            continue;
+        }
+        $defaults[$k] = (string) ($row['setting_value'] ?? '');
+    }
+
+    cachePut($cacheKey, $defaults);
+    return $defaults;
+}
+
+function siteSetting(string $key, ?string $default = null): string
+{
+    $settings = siteSettings();
+    if (array_key_exists($key, $settings)) {
+        return (string) $settings[$key];
+    }
+    if ($default !== null) {
+        return $default;
+    }
+    $defs = siteSettingsDefaults();
+    return (string) ($defs[$key] ?? '');
+}
+
+function setSiteSetting(string $key, string $value): bool
+{
+    $defaults = siteSettingsDefaults();
+    if (!array_key_exists($key, $defaults)) {
+        return false;
+    }
+
+    $existing = Database::fetch('SELECT setting_key FROM site_settings WHERE setting_key = ? LIMIT 1', [$key]);
+    if ($existing) {
+        Database::execute(
+            'UPDATE site_settings SET setting_value = ?, updated_at = ' . Database::nowExpression() . ' WHERE setting_key = ?',
+            [$value, $key]
+        );
+    } else {
+        Database::execute(
+            'INSERT INTO site_settings (setting_key, setting_value) VALUES (?, ?)',
+            [$key, $value]
+        );
+    }
+
+    cachePut('site:settings:v1', []);
+    return true;
+}
+
+function isSignupAllowed(): bool
+{
+    return siteSetting('allow_signup', '1') !== '0';
 }

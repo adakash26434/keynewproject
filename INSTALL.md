@@ -1,4 +1,4 @@
-# Personal Key Wallet — cPanel Deployment
+# Aakash Key Vault — cPanel Deployment
 
 ## Requirements
 - PHP 8.x (7.4+ compatible)
@@ -50,8 +50,23 @@ SESSION_SECRET=anyrandomsecretstring
 BREACH_CHECK_ENABLED=false
 ALERT_WEBHOOK_URL=
 ALERT_WEBHOOK_MODE=generic
+SUPERADMIN_NAME=Project Owner
+SUPERADMIN_EMAIL=owner@example.com
+SUPERADMIN_PASSWORD=ChangeThisStrongPassword123!
 ```
 If not set, the app auto-generates and stores an encryption key in `data/.encryption_key`.
+
+### Project Owner Superadmin
+- Superadmin concept is supported via `users.is_superadmin`.
+- On startup, if `SUPERADMIN_EMAIL` and `SUPERADMIN_PASSWORD` are set, the app auto-creates/updates that user as superadmin.
+- Password is stored hashed (bcrypt) in DB; the plain password is only read from environment.
+- For cPanel deployments, keep `.env` private and never expose it publicly. This repo now blocks dotfiles via `.htaccess`.
+- Superadmin can manage global settings at `/admin/settings`:
+	- Site name and tagline
+	- Logo URL
+	- Support email
+	- Maintenance notice banner
+	- Enable/disable new user signup
 
 ### Breach Monitoring (Optional)
 - Set `BREACH_CHECK_ENABLED=true` to enable password breach checks in Insights.
@@ -69,7 +84,7 @@ If you want MySQL (recommended for higher write concurrency), set these in `.env
 DB_DRIVER=mysql
 DB_HOST=127.0.0.1
 DB_PORT=3306
-DB_NAME=key_wallet
+DB_NAME=aakash_key_vault
 DB_USER=your_mysql_user
 DB_PASS=your_mysql_password
 DB_CHARSET=utf8mb4
@@ -77,7 +92,7 @@ DB_CHARSET=utf8mb4
 
 Notes:
 1. Enable `pdo_mysql` extension in PHP.
-2. Create database first (example): `CREATE DATABASE key_wallet CHARACTER SET utf8mb4 COLLATE utf8mb4_unicode_ci;`
+2. Create database first (example): `CREATE DATABASE aakash_key_vault CHARACTER SET utf8mb4 COLLATE utf8mb4_unicode_ci;`
 3. Tables are auto-created by the app on first run, same as SQLite mode.
 4. Existing SQLite data is not auto-copied. Export/import via Profile backup is the safest migration path.
 

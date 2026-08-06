@@ -4,7 +4,13 @@
 <meta charset="UTF-8">
 <meta name="viewport" content="width=device-width, initial-scale=1.0">
 <meta name="theme-color" content="#0f172a">
-<title><?= e($pageTitle ?? 'Dashboard') ?> — <?= APP_NAME ?></title>
+<?php
+  $siteName = siteSetting('site_name', APP_NAME);
+  $siteTagline = siteSetting('site_tagline', 'Your secure digital vault');
+  $siteLogoUrl = siteSetting('logo_url', '');
+  $maintenanceNotice = siteSetting('maintenance_notice', '');
+?>
+<title><?= e($pageTitle ?? 'Dashboard') ?> — <?= e($siteName) ?></title>
 <link rel="manifest" href="/manifest.webmanifest">
 <link rel="preconnect" href="https://fonts.googleapis.com">
 <link href="https://fonts.googleapis.com/css2?family=Plus+Jakarta+Sans:wght@400;500;600;700&display=swap" rel="stylesheet">
@@ -24,16 +30,106 @@ tailwind.config = {
 </script>
 <style>
 body { font-family: 'Plus Jakarta Sans', sans-serif; }
-.sidebar-link { @apply flex items-center gap-3 px-3 py-2.5 rounded-lg text-sm font-medium text-slate-600 hover:bg-slate-100 hover:text-slate-900 transition-all; }
-.sidebar-link.active { @apply bg-blue-50 text-blue-700 font-semibold; }
-.sidebar-section { @apply px-3 pt-4 pb-1 text-[10px] font-bold uppercase tracking-widest text-slate-400; }
-.card { @apply bg-white rounded-xl border border-slate-200 shadow-sm; }
-.btn-primary { @apply inline-flex items-center gap-2 px-4 py-2 bg-blue-600 text-white text-sm font-semibold rounded-lg hover:bg-blue-700 transition-colors; }
-.btn-secondary { @apply inline-flex items-center gap-2 px-4 py-2 bg-white text-slate-700 text-sm font-semibold rounded-lg border border-slate-300 hover:bg-slate-50 transition-colors; }
-.btn-danger { @apply inline-flex items-center gap-2 px-4 py-2 bg-red-600 text-white text-sm font-semibold rounded-lg hover:bg-red-700 transition-colors; }
-.form-input { @apply w-full rounded-lg border border-slate-300 px-3 py-2 text-sm text-slate-900 placeholder-slate-400 focus:outline-none focus:ring-2 focus:ring-blue-500 focus:border-transparent transition-all; }
-.form-label { @apply block text-sm font-medium text-slate-700 mb-1; }
-.badge { @apply inline-flex items-center px-2 py-0.5 rounded-full text-xs font-medium; }
+.sidebar-link {
+  display: flex;
+  align-items: center;
+  gap: 0.75rem;
+  padding: 0.625rem 0.75rem;
+  border-radius: 0.5rem;
+  font-size: 0.875rem;
+  font-weight: 500;
+  color: rgb(71 85 105);
+  transition: all 0.2s ease;
+}
+.sidebar-link:hover {
+  background: rgb(241 245 249);
+  color: rgb(15 23 42);
+}
+.sidebar-link.active {
+  background: rgb(239 246 255);
+  color: rgb(29 78 216);
+  font-weight: 600;
+}
+.sidebar-section {
+  padding: 1rem 0.75rem 0.25rem;
+  font-size: 10px;
+  font-weight: 700;
+  text-transform: uppercase;
+  letter-spacing: 0.08em;
+  color: rgb(148 163 184);
+}
+.card {
+  background: #fff;
+  border-radius: 0.75rem;
+  border: 1px solid rgb(226 232 240);
+  box-shadow: 0 1px 2px 0 rgb(15 23 42 / 0.06);
+}
+.btn-primary,
+.btn-secondary,
+.btn-danger {
+  display: inline-flex;
+  align-items: center;
+  gap: 0.5rem;
+  padding: 0.5rem 1rem;
+  border-radius: 0.5rem;
+  font-size: 0.875rem;
+  font-weight: 600;
+  transition: background-color 0.2s ease, color 0.2s ease, border-color 0.2s ease;
+}
+.btn-primary {
+  background: rgb(37 99 235);
+  color: #fff;
+}
+.btn-primary:hover {
+  background: rgb(29 78 216);
+}
+.btn-secondary {
+  background: #fff;
+  color: rgb(51 65 85);
+  border: 1px solid rgb(203 213 225);
+}
+.btn-secondary:hover {
+  background: rgb(248 250 252);
+}
+.btn-danger {
+  background: rgb(220 38 38);
+  color: #fff;
+}
+.btn-danger:hover {
+  background: rgb(185 28 28);
+}
+.form-input {
+  width: 100%;
+  border-radius: 0.5rem;
+  border: 1px solid rgb(203 213 225);
+  padding: 0.5rem 0.75rem;
+  font-size: 0.875rem;
+  color: rgb(15 23 42);
+  transition: border-color 0.2s ease, box-shadow 0.2s ease;
+}
+.form-input::placeholder {
+  color: rgb(148 163 184);
+}
+.form-input:focus {
+  outline: none;
+  border-color: rgb(59 130 246);
+  box-shadow: 0 0 0 2px rgb(59 130 246 / 0.25);
+}
+.form-label {
+  display: block;
+  margin-bottom: 0.25rem;
+  font-size: 0.875rem;
+  font-weight: 500;
+  color: rgb(51 65 85);
+}
+.badge {
+  display: inline-flex;
+  align-items: center;
+  padding: 0.125rem 0.5rem;
+  border-radius: 9999px;
+  font-size: 0.75rem;
+  font-weight: 500;
+}
 [x-cloak] { display: none !important; }
 </style>
 </head>
@@ -181,12 +277,21 @@ body { font-family: 'Plus Jakarta Sans', sans-serif; }
     <!-- Logo -->
     <div class="h-16 flex items-center px-5 border-b border-slate-100">
       <div class="flex items-center gap-2.5">
+        <?php if ($siteLogoUrl !== ''): ?>
+        <img src="<?= e($siteLogoUrl) ?>" alt="<?= e($siteName) ?> logo" class="w-8 h-8 rounded-lg object-cover border border-slate-200 bg-white">
+        <?php else: ?>
         <div class="w-8 h-8 bg-blue-600 rounded-lg flex items-center justify-center">
           <svg class="w-4.5 h-4.5 text-white" fill="none" viewBox="0 0 24 24" stroke="currentColor" stroke-width="2.5">
             <path stroke-linecap="round" stroke-linejoin="round" d="M15.75 5.25a3 3 0 013 3m3 0a6 6 0 01-7.029 5.912c-.563-.097-1.159.026-1.563.43L10.5 17.25H8.25v2.25H6v2.25H2.25v-2.818c0-.597.237-1.17.659-1.591l6.499-6.499c.404-.404.527-1 .43-1.563A6 6 0 1121.75 8.25z"/>
           </svg>
         </div>
-        <span class="font-bold text-slate-900 text-sm">Key Wallet</span>
+        <?php endif; ?>
+        <div class="min-w-0">
+          <span class="font-bold text-slate-900 text-sm block truncate"><?= e($siteName) ?></span>
+          <?php if ($siteTagline !== ''): ?>
+          <span class="text-[10px] text-slate-400 block truncate leading-tight"><?= e($siteTagline) ?></span>
+          <?php endif; ?>
+        </div>
       </div>
     </div>
 
@@ -231,6 +336,14 @@ body { font-family: 'Plus Jakarta Sans', sans-serif; }
         <svg class="w-4 h-4" fill="none" viewBox="0 0 24 24" stroke="currentColor"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M16 7a4 4 0 11-8 0 4 4 0 018 0zM12 14a7 7 0 00-7 7h14a7 7 0 00-7-7z"/></svg>
         CV Builder
       </a>
+
+      <?php if (Auth::isSuperAdmin()): ?>
+      <p class="sidebar-section">Administration</p>
+      <a href="/admin/settings" class="sidebar-link <?= (str_starts_with($_SERVER['REQUEST_URI'],'/admin/settings')?'active':'') ?>">
+        <svg class="w-4 h-4" fill="none" viewBox="0 0 24 24" stroke="currentColor"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M10.325 4.317c.426-1.756 2.924-1.756 3.35 0a1.724 1.724 0 002.573 1.066c1.543-.94 3.31.826 2.37 2.37a1.724 1.724 0 001.065 2.572c1.756.426 1.756 2.924 0 3.35a1.724 1.724 0 00-1.066 2.573c.94 1.543-.826 3.31-2.37 2.37a1.724 1.724 0 00-2.572 1.065c-.426 1.756-2.924 1.756-3.35 0a1.724 1.724 0 00-2.573-1.066c-1.543.94-3.31-.826-2.37-2.37a1.724 1.724 0 00-1.065-2.572c-1.756-.426-1.756-2.924 0-3.35a1.724 1.724 0 001.066-2.573c-.94-1.543.826-3.31 2.37-2.37.996.608 2.296.07 2.572-1.065z"/><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M15 12a3 3 0 11-6 0 3 3 0 016 0z"/></svg>
+        Site Settings
+      </a>
+      <?php endif; ?>
     </nav>
 
     <!-- Bottom: Profile & Logout -->
@@ -260,6 +373,11 @@ body { font-family: 'Plus Jakarta Sans', sans-serif; }
       </button>
       <h1 class="text-base font-bold text-slate-900"><?= e($pageTitle ?? '') ?></h1>
       <div class="ml-auto flex items-center gap-2">
+        <?php if ($maintenanceNotice !== ''): ?>
+        <span class="hidden xl:inline-flex items-center px-2.5 py-1 rounded-md bg-amber-50 text-amber-700 text-xs font-medium border border-amber-200">
+          <?= e($maintenanceNotice) ?>
+        </span>
+        <?php endif; ?>
         <button x-show="showInstallPrompt" x-cloak @click="installPwa()"
           class="hidden sm:inline-flex items-center gap-2 px-3 py-1.5 text-xs font-semibold text-emerald-700 bg-emerald-50 hover:bg-emerald-100 rounded-lg transition-colors">
           Install App

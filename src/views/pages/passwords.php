@@ -82,8 +82,8 @@ $catColors = ['Digital Wallet'=>'bg-green-100 text-green-700','Banking'=>'bg-blu
   <?php endif; ?>
 
   <!-- Header -->
-  <div class="flex flex-col sm:flex-row gap-3 items-start sm:items-center justify-between">
-    <form method="GET" action="/passwords" class="flex gap-2 flex-1 max-w-md">
+  <div class="flex flex-col xl:flex-row gap-3 items-start xl:items-center justify-between">
+    <form method="GET" action="/passwords" class="flex flex-col sm:flex-row gap-2 flex-1 w-full xl:max-w-2xl">
       <div class="relative flex-1">
         <svg class="absolute left-3 top-1/2 -translate-y-1/2 w-4 h-4 text-slate-400" fill="none" viewBox="0 0 24 24" stroke="currentColor"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M21 21l-6-6m2-5a7 7 0 11-14 0 7 7 0 0114 0z"/></svg>
             <input type="text" name="q" value="<?= e($search) ?>" placeholder="Search passwords..." autocomplete="off" class="w-full pl-9 pr-3 py-2 text-sm border border-slate-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-blue-500 bg-white">
@@ -146,7 +146,13 @@ $catColors = ['Digital Wallet'=>'bg-green-100 text-green-700','Banking'=>'bg-blu
               </div>
             </div>
           </td>
-          <td class="px-4 py-3 hidden md:table-cell text-slate-600 text-sm"><?= e($pw['username']) !== '' ? e($pw['username']) : '<span class="text-slate-300">—</span>' ?></td>
+          <td class="px-4 py-3 hidden md:table-cell text-slate-600 text-sm">
+            <?php if (e($pw['username']) !== ''): ?>
+              <?= e($pw['username']) ?>
+            <?php else: ?>
+              <span class="text-slate-300">—</span>
+            <?php endif; ?>
+          </td>
           <td class="px-4 py-3 hidden lg:table-cell"><span class="badge <?= $cc ?>"><?= e($pw['category']) ?></span></td>
           <td class="px-4 py-3"><span class="badge <?= $sc ?>"><?= ucfirst($pw['strength']) ?></span></td>
           <td class="px-4 py-3">
@@ -186,16 +192,16 @@ $catColors = ['Digital Wallet'=>'bg-green-100 text-green-700','Banking'=>'bg-blu
   <!-- Add / Edit Modal -->
   <div x-show="showModal" x-cloak class="fixed inset-0 z-50 flex items-center justify-center p-4">
     <div @click="showModal=false" class="absolute inset-0 bg-black/40 backdrop-blur-sm"></div>
-    <div class="relative bg-white rounded-2xl shadow-2xl w-full max-w-lg" @click.stop>
+    <div class="relative bg-white rounded-2xl shadow-2xl w-full max-w-lg max-h-[92vh] flex flex-col" @click.stop>
       <div class="flex items-center justify-between p-6 border-b border-slate-100">
         <h3 class="font-bold text-slate-900" x-text="editId ? 'Edit Password' : 'Add Password'"></h3>
         <button @click="showModal=false" class="p-1 text-slate-400 hover:text-slate-600 rounded-lg hover:bg-slate-100">
           <svg class="w-5 h-5" fill="none" viewBox="0 0 24 24" stroke="currentColor"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M6 18L18 6M6 6l12 12"/></svg>
         </button>
       </div>
-      <form :action="editId ? '/passwords/' + editId + '/update' : '/passwords'" method="POST" class="p-6 space-y-4">
+      <form :action="editId ? '/passwords/' + editId + '/update' : '/passwords'" method="POST" class="p-6 space-y-4 overflow-y-auto">
         <input type="hidden" name="_csrf" value="<?= e(Auth::csrfToken()) ?>">
-        <div class="grid grid-cols-2 gap-4">
+        <div class="grid grid-cols-1 md:grid-cols-2 gap-4">
           <div class="col-span-2">
             <label class="form-label">Title *</label>
             <input type="text" name="title" required :value="form.title" class="form-input" placeholder="e.g. eSewa, Gmail" autocomplete="off">
@@ -231,10 +237,10 @@ $catColors = ['Digital Wallet'=>'bg-green-100 text-green-700','Banking'=>'bg-blu
           </div>
           <div class="col-span-2">
             <label class="form-label">Notes</label>
-            <textarea name="notes" rows="2" class="form-input" placeholder="Optional notes..." x-text="form.notes"></textarea>
+            <textarea name="notes" rows="3" class="form-input" placeholder="Optional notes..." x-text="form.notes"></textarea>
           </div>
         </div>
-        <div class="flex justify-end gap-3 pt-2">
+        <div class="flex flex-col-reverse sm:flex-row sm:justify-end gap-2 sm:gap-3 pt-2 sticky bottom-0 bg-white/95 backdrop-blur-sm pb-1">
           <button type="button" @click="showModal=false" class="btn-secondary">Cancel</button>
           <button type="submit" class="btn-primary" x-text="editId ? 'Update' : 'Save Password'">Save Password</button>
         </div>

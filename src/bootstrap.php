@@ -21,12 +21,14 @@ require_once __DIR__ . '/controllers/ProfileController.php';
 require_once __DIR__ . '/controllers/CVController.php';
 require_once __DIR__ . '/controllers/InsightsController.php';
 require_once __DIR__ . '/controllers/SearchController.php';
+require_once __DIR__ . '/controllers/AdminController.php';
 
 // Start session
 Auth::start();
 
 // Boot database (creates tables if needed)
 Database::getInstance();
+Auth::ensureOwnerSuperAdminFromEnv();
 
 // Register routes
 $router = new Router();
@@ -93,21 +95,26 @@ $router->post('/profile/sessions/{id}/revoke', [ProfileController::class, 'revok
 $router->post('/profile/backup/export', [ProfileController::class, 'exportBackup']);
 $router->post('/profile/backup/import', [ProfileController::class, 'importBackup']);
 
+// ── Superadmin ───────────────────────────────────────────────────────────────
+$router->get('/admin/settings', [AdminController::class, 'siteSettings']);
+$router->post('/admin/settings', [AdminController::class, 'updateSiteSettings']);
+
 // ── Global Search (JSON) ──────────────────────────────────────────────────────
 $router->get('/search', [SearchController::class, 'search']);
 
 // ── PWA assets ────────────────────────────────────────────────────────────────
 $router->get('/manifest.webmanifest', function () {
     header('Content-Type: application/manifest+json; charset=utf-8');
+    $siteName = siteSetting('site_name', APP_NAME);
     echo json_encode([
-        'name' => APP_NAME,
-        'short_name' => 'KeyWallet',
+        'name' => $siteName,
+        'short_name' => 'AakashVault',
         'start_url' => '/dashboard',
         'scope' => '/',
         'display' => 'standalone',
         'background_color' => '#f1f5f9',
         'theme_color' => '#0f172a',
-        'description' => 'Secure personal key wallet with passwords, documents, tasks and finance insights.',
+        'description' => 'Secure ' . $siteName . ' with passwords, documents, tasks and finance insights.',
         'icons' => [
             [
                 'src' => 'data:image/svg+xml,%3Csvg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 128 128"%3E%3Crect width="128" height="128" rx="24" fill="%230078D4"/%3E%3Cpath d="M86 36a12 12 0 0 1 12 12v1h6v16h-13l-8 8h-7v11H60V73H45a17 17 0 1 1 0-34h41Zm0 11H45a6 6 0 1 0 0 12h20v14h8V59h13a6 6 0 0 0 0-12Z" fill="white"/%3E%3C/svg%3E',
@@ -121,7 +128,7 @@ $router->get('/manifest.webmanifest', function () {
 
 $router->get('/sw.js', function () {
     header('Content-Type: application/javascript; charset=utf-8');
-    echo "const CACHE_NAME = 'keywallet-shell-v1';\n"
+    echo "const CACHE_NAME = 'aakash-key-vault-shell-v1';\n"
        . "const URLS = ['/login', '/signup', '/dashboard', '/insights'];\n"
        . "self.addEventListener('install', event => {\n"
        . "  event.waitUntil(caches.open(CACHE_NAME).then(cache => cache.addAll(URLS)).catch(() => null));\n"

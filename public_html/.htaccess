@@ -1,6 +1,9 @@
 Options -MultiViews -Indexes
 RewriteEngine On
 
+# Block dotfiles (e.g. .env, .git)
+RewriteRule "(^|/)\." - [F,L]
+
 # Block direct access if app internals were uploaded inside public_html
 RewriteRule ^data(/.*)?$ - [F,L]
 RewriteRule ^src(/.*)?$ - [F,L]

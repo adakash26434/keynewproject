@@ -1,6 +1,6 @@
 # Browser Extension MVP
 
-This is a basic extension MVP for quick access to Key Wallet.
+This is a basic extension MVP for quick access to Aakash Key Vault.
 
 ## Features
 - Save your vault base URL.

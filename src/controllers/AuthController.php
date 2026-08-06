@@ -49,12 +49,20 @@ class AuthController
     public static function showSignup(): void
     {
         Auth::requireGuest();
+        if (!isSignupAllowed()) {
+            flash('error', 'New signup is currently disabled by the administrator.');
+            redirect('/login');
+        }
         view('auth/signup');
     }
 
     public static function handleSignup(): void
     {
         Auth::requireGuest();
+        if (!isSignupAllowed()) {
+            flash('error', 'New signup is currently disabled by the administrator.');
+            redirect('/login');
+        }
         Auth::verifyCsrf();
 
         $name     = sanitize(input('name', ''));
@@ -114,7 +122,7 @@ class AuthController
 
         $user   = Database::fetch('SELECT * FROM users WHERE id = ?', [$_SESSION['user_id']]);
         $secret = $user['totp_secret'];
-        $qrUri  = Totp::getQrUri($secret, $user['email']);
+        $qrUri  = Totp::getQrUri($secret, $user['email'], siteSetting('site_name', APP_NAME));
 
         view('auth/setup-2fa', compact('secret', 'qrUri', 'user'));
     }
