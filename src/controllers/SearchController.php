@@ -7,6 +7,12 @@ class SearchController
         $uid = userId();
         $q   = trim(input('q', ''));
 
+        $searchKey = Auth::throttleKey('search', (string) $uid);
+        if (Auth::tooManyAttempts($searchKey, 90, 60)) {
+            json(['results' => [], 'error' => 'Too many search requests.'], 429);
+        }
+        Auth::recordAttempt($searchKey);
+
         if (strlen($q) < 2) {
             json(['results' => []]);
         }

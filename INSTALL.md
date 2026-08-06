@@ -63,3 +63,12 @@ If not set, the app auto-generates and stores an encryption key in `data/.encryp
 	2. `openssl` extension is enabled.
 	3. `data/` is writable (`chmod 700 data`).
 - If you see 403, confirm your subdomain document root points to the correct folder and `.htaccess` is present.
+
+## High-Traffic Notes
+- This version includes query indexes, pagination, and SQLite tuning for better concurrency.
+- Keep PHP OPcache enabled for faster response times.
+- Keep HTTPS enabled and avoid heavy debug logging on production.
+- Recommended maintenance (weekly on busy servers):
+	1. Backup `data/wallet.db`.
+	2. Run `VACUUM;` and `ANALYZE;` on SQLite during low-traffic period.
+- For very high concurrent write traffic, plan migration to MySQL/PostgreSQL.

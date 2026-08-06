@@ -181,3 +181,100 @@ function userId(): int
 {
     return (int) ($_SESSION['user_id'] ?? 0);
 }
+
+function cacheDirPath(): string
+{
+    $dir = DATA_PATH . '/cache';
+    if (!is_dir($dir)) {
+        mkdir($dir, 0700, true);
+    }
+    return $dir;
+}
+
+function cacheFilePath(string $key): string
+{
+    return cacheDirPath() . '/' . hash('sha256', $key) . '.cache';
+}
+
+function cacheGet(string $key, int $ttlSeconds): mixed
+{
+    $file = cacheFilePath($key);
+    if (!is_file($file)) {
+        return null;
+    }
+
+    $fp = fopen($file, 'rb');
+    if ($fp === false) {
+        return null;
+    }
+
+    try {
+        if (!flock($fp, LOCK_SH)) {
+            return null;
+        }
+
+        $raw = stream_get_contents($fp);
+        if ($raw === false || $raw === '') {
+            return null;
+        }
+
+        $payload = json_decode($raw, true);
+        if (!is_array($payload) || !isset($payload['created_at'])) {
+            return null;
+        }
+
+        $createdAt = (int) $payload['created_at'];
+        if ($createdAt <= 0 || (time() - $createdAt) > $ttlSeconds) {
+            return null;
+        }
+
+        return $payload['value'] ?? null;
+    } finally {
+        flock($fp, LOCK_UN);
+        fclose($fp);
+    }
+}
+
+function cachePut(string $key, mixed $value): void
+{
+    $file = cacheFilePath($key);
+    $payload = json_encode([
+        'created_at' => time(),
+        'value' => $value,
+    ]);
+
+    if ($payload === false) {
+        return;
+    }
+
+    $fp = fopen($file, 'cb');
+    if ($fp === false) {
+        return;
+    }
+
+    try {
+        if (!flock($fp, LOCK_EX)) {
+            return;
+        }
+
+        ftruncate($fp, 0);
+        rewind($fp);
+        fwrite($fp, $payload);
+        fflush($fp);
+    } finally {
+        flock($fp, LOCK_UN);
+        fclose($fp);
+    }
+}
+
+function cacheRemember(string $key, int $ttlSeconds, callable $resolver): mixed
+{
+    $cached = cacheGet($key, $ttlSeconds);
+    if ($cached !== null) {
+        return $cached;
+    }
+
+    $value = $resolver();
+    cachePut($key, $value);
+    return $value;
+}

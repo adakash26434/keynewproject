@@ -6,57 +6,77 @@ class DashboardController
         Auth::requireAuth();
         $uid = userId();
 
-        $passwordCount = (int) Database::fetch(
-            'SELECT COUNT(*) as c FROM passwords WHERE user_id = ?', [$uid]
-        )['c'];
+        $cacheKey = 'dashboard:' . $uid . ':' . date('Y-m-d-H-i');
+        $data = cacheRemember($cacheKey, 20, function () use ($uid): array {
+            $passwordCount = (int) Database::fetch(
+                'SELECT COUNT(*) as c FROM passwords WHERE user_id = ?', [$uid]
+            )['c'];
 
-        $documentCount = (int) Database::fetch(
-            'SELECT COUNT(*) as c FROM documents WHERE user_id = ?', [$uid]
-        )['c'];
+            $documentCount = (int) Database::fetch(
+                'SELECT COUNT(*) as c FROM documents WHERE user_id = ?', [$uid]
+            )['c'];
 
-        $taskCount = (int) Database::fetch(
-            'SELECT COUNT(*) as c FROM tasks WHERE user_id = ? AND completed = 0', [$uid]
-        )['c'];
+            $taskCount = (int) Database::fetch(
+                'SELECT COUNT(*) as c FROM tasks WHERE user_id = ? AND completed = 0', [$uid]
+            )['c'];
 
-        // Finance summary for current month
-        $month = date('Y-m');
-        $income = (float) (Database::fetch(
-            "SELECT COALESCE(SUM(amount), 0) as s FROM finance_records WHERE user_id = ? AND type='income' AND strftime('%Y-%m', record_date) = ?",
-            [$uid, $month]
-        )['s'] ?? 0);
-        $expenses = (float) (Database::fetch(
-            "SELECT COALESCE(SUM(amount), 0) as s FROM finance_records WHERE user_id = ? AND type='expense' AND strftime('%Y-%m', record_date) = ?",
-            [$uid, $month]
-        )['s'] ?? 0);
+            $month = date('Y-m');
+            $income = (float) (Database::fetch(
+                "SELECT COALESCE(SUM(amount), 0) as s FROM finance_records WHERE user_id = ? AND type='income' AND strftime('%Y-%m', record_date) = ?",
+                [$uid, $month]
+            )['s'] ?? 0);
+            $expenses = (float) (Database::fetch(
+                "SELECT COALESCE(SUM(amount), 0) as s FROM finance_records WHERE user_id = ? AND type='expense' AND strftime('%Y-%m', record_date) = ?",
+                [$uid, $month]
+            )['s'] ?? 0);
 
-        // Weak passwords
-        $weakPasswords = Database::fetchAll(
-            "SELECT COUNT(*) as c FROM passwords WHERE user_id = ? AND strength IN ('weak', 'fair')",
-            [$uid]
-        );
-        $weakCount = (int) ($weakPasswords[0]['c'] ?? 0);
+            $weakPasswords = Database::fetchAll(
+                "SELECT COUNT(*) as c FROM passwords WHERE user_id = ? AND strength IN ('weak', 'fair')",
+                [$uid]
+            );
+            $weakCount = (int) ($weakPasswords[0]['c'] ?? 0);
 
-        // Expiring documents (within 60 days)
-        $expiringDocs = Database::fetchAll(
-            "SELECT title, expiry_date FROM documents WHERE user_id = ? AND expiry_date IS NOT NULL AND expiry_date != '' AND date(expiry_date) BETWEEN date('now') AND date('now', '+60 days') ORDER BY expiry_date ASC LIMIT 5",
-            [$uid]
-        );
+            $expiringDocs = Database::fetchAll(
+                "SELECT title, expiry_date FROM documents WHERE user_id = ? AND expiry_date IS NOT NULL AND expiry_date != '' AND date(expiry_date) BETWEEN date('now') AND date('now', '+60 days') ORDER BY expiry_date ASC LIMIT 5",
+                [$uid]
+            );
 
-        // Recent passwords
-        $recentPasswords = Database::fetchAll(
-            'SELECT id, title, username, category, created_at FROM passwords WHERE user_id = ? ORDER BY created_at DESC LIMIT 5',
-            [$uid]
-        );
-        foreach ($recentPasswords as &$pw) {
-            $pw['username'] = $pw['username'] ? (Crypto::decrypt($pw['username']) ?? '') : '';
-        }
-        unset($pw);
+            $recentPasswords = Database::fetchAll(
+                'SELECT id, title, username, category, created_at FROM passwords WHERE user_id = ? ORDER BY created_at DESC LIMIT 5',
+                [$uid]
+            );
+            foreach ($recentPasswords as &$pw) {
+                $pw['username'] = $pw['username'] ? (Crypto::decrypt($pw['username']) ?? '') : '';
+            }
+            unset($pw);
 
-        // Recent tasks
-        $recentTasks = Database::fetchAll(
-            'SELECT id, title, priority, due_date, completed FROM tasks WHERE user_id = ? ORDER BY created_at DESC LIMIT 5',
-            [$uid]
-        );
+            $recentTasks = Database::fetchAll(
+                'SELECT id, title, priority, due_date, completed FROM tasks WHERE user_id = ? ORDER BY created_at DESC LIMIT 5',
+                [$uid]
+            );
+
+            return [
+                'passwordCount' => $passwordCount,
+                'documentCount' => $documentCount,
+                'taskCount' => $taskCount,
+                'income' => $income,
+                'expenses' => $expenses,
+                'weakCount' => $weakCount,
+                'expiringDocs' => $expiringDocs,
+                'recentPasswords' => $recentPasswords,
+                'recentTasks' => $recentTasks,
+            ];
+        });
+
+        $passwordCount = (int) ($data['passwordCount'] ?? 0);
+        $documentCount = (int) ($data['documentCount'] ?? 0);
+        $taskCount = (int) ($data['taskCount'] ?? 0);
+        $income = (float) ($data['income'] ?? 0);
+        $expenses = (float) ($data['expenses'] ?? 0);
+        $weakCount = (int) ($data['weakCount'] ?? 0);
+        $expiringDocs = is_array($data['expiringDocs'] ?? null) ? $data['expiringDocs'] : [];
+        $recentPasswords = is_array($data['recentPasswords'] ?? null) ? $data['recentPasswords'] : [];
+        $recentTasks = is_array($data['recentTasks'] ?? null) ? $data['recentTasks'] : [];
 
         // Security score
         $totalPasswords = $passwordCount;
