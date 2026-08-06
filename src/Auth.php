@@ -1,6 +1,49 @@
 <?php
 class Auth
 {
+    private static function clientIp(): string
+    {
+        $forwarded = $_SERVER['HTTP_X_FORWARDED_FOR'] ?? '';
+        if ($forwarded !== '') {
+            $parts = explode(',', $forwarded);
+            $candidate = trim($parts[0]);
+            if ($candidate !== '') {
+                return $candidate;
+            }
+        }
+
+        return $_SERVER['REMOTE_ADDR'] ?? 'unknown';
+    }
+
+    public static function throttleKey(string $scope, string $identifier = ''): string
+    {
+        $id = $identifier !== '' ? strtolower(trim($identifier)) : 'anonymous';
+        return $scope . '|' . $id . '|' . self::clientIp();
+    }
+
+    public static function tooManyAttempts(string $key, int $maxAttempts, int $windowSeconds): bool
+    {
+        $now = time();
+        $attempts = $_SESSION['_rate_limits'][$key] ?? [];
+        $attempts = array_values(array_filter($attempts, static fn (int $ts): bool => ($now - $ts) < $windowSeconds));
+        $_SESSION['_rate_limits'][$key] = $attempts;
+
+        return count($attempts) >= $maxAttempts;
+    }
+
+    public static function recordAttempt(string $key): void
+    {
+        if (!isset($_SESSION['_rate_limits'][$key]) || !is_array($_SESSION['_rate_limits'][$key])) {
+            $_SESSION['_rate_limits'][$key] = [];
+        }
+        $_SESSION['_rate_limits'][$key][] = time();
+    }
+
+    public static function clearAttempts(string $key): void
+    {
+        unset($_SESSION['_rate_limits'][$key]);
+    }
+
     public static function start(): void
     {
         if (session_status() === PHP_SESSION_NONE) {

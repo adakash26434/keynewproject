@@ -15,6 +15,12 @@ class AuthController
         $email    = sanitize(input('email', ''));
         $password = input('password', '');
 
+        $loginKey = Auth::throttleKey('login', $email !== '' ? $email : 'unknown');
+        if (Auth::tooManyAttempts($loginKey, 8, 300)) {
+            flash('error', 'Too many login attempts. Please wait 5 minutes and try again.');
+            redirect('/login');
+        }
+
         if (!$email || !$password) {
             flash('error', 'Email and password are required.');
             redirect('/login');
@@ -23,9 +29,12 @@ class AuthController
         $user = Database::fetch('SELECT * FROM users WHERE email = ?', [$email]);
 
         if (!$user || !Auth::verifyPassword($password, $user['password_hash'])) {
+            Auth::recordAttempt($loginKey);
             flash('error', 'Invalid email or password.');
             redirect('/login');
         }
+
+        Auth::clearAttempts($loginKey);
 
         Auth::login($user);
 
@@ -114,11 +123,20 @@ class AuthController
 
         $code = sanitize(input('code', ''));
         $user = Database::fetch('SELECT * FROM users WHERE id = ?', [$_SESSION['user_id']]);
+        $twoFaKey = Auth::throttleKey('setup-2fa', (string) ($_SESSION['user_id'] ?? 'unknown'));
+
+        if (Auth::tooManyAttempts($twoFaKey, 10, 300)) {
+            flash('error', 'Too many verification attempts. Please wait 5 minutes.');
+            redirect('/setup-2fa');
+        }
 
         if (!Totp::verify($user['totp_secret'], $code)) {
+            Auth::recordAttempt($twoFaKey);
             flash('error', 'Invalid code. Please try again.');
             redirect('/setup-2fa');
         }
+
+        Auth::clearAttempts($twoFaKey);
 
         Database::execute(
             "UPDATE users SET totp_verified = 1, updated_at = datetime('now') WHERE id = ?",
@@ -143,11 +161,20 @@ class AuthController
 
         $code = sanitize(input('code', ''));
         $user = Database::fetch('SELECT * FROM users WHERE id = ?', [$_SESSION['user_id']]);
+        $twoFaKey = Auth::throttleKey('verify-2fa', (string) ($_SESSION['user_id'] ?? 'unknown'));
+
+        if (Auth::tooManyAttempts($twoFaKey, 10, 300)) {
+            flash('error', 'Too many verification attempts. Please wait 5 minutes.');
+            redirect('/verify-2fa');
+        }
 
         if (!$user || !Totp::verify($user['totp_secret'], $code)) {
+            Auth::recordAttempt($twoFaKey);
             flash('error', 'Invalid or expired code. Please try again.');
             redirect('/verify-2fa');
         }
+
+        Auth::clearAttempts($twoFaKey);
 
         Auth::completeTwoFactor();
         redirect('/dashboard');
