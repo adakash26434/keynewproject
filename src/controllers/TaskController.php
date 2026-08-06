@@ -8,16 +8,29 @@ class TaskController
         $filter   = sanitize(input('filter', 'all'));
         $priority = sanitize(input('priority', ''));
         $category = sanitize(input('category', ''));
+        $page     = max(1, (int) input('page', 1));
+        $perPage  = (int) input('per_page', 40);
+        $perPage  = max(10, min($perPage, 100));
+        $offset   = ($page - 1) * $perPage;
 
-        $sql    = 'SELECT * FROM tasks WHERE user_id = ?';
+        $where  = ' FROM tasks WHERE user_id = ?';
         $params = [$uid];
 
-        if ($filter === 'active')    { $sql .= ' AND completed = 0'; }
-        if ($filter === 'done')      { $sql .= ' AND completed = 1'; }
-        if ($priority)               { $sql .= ' AND priority = ?'; $params[] = $priority; }
-        if ($category)               { $sql .= ' AND category = ?'; $params[] = $category; }
+        if ($filter === 'active')    { $where .= ' AND completed = 0'; }
+        if ($filter === 'done')      { $where .= ' AND completed = 1'; }
+        if ($priority)               { $where .= ' AND priority = ?'; $params[] = $priority; }
+        if ($category)               { $where .= ' AND category = ?'; $params[] = $category; }
 
-        $sql .= ' ORDER BY completed ASC, CASE priority WHEN "high" THEN 1 WHEN "medium" THEN 2 ELSE 3 END, due_date ASC NULLS LAST';
+        $total = (int) (Database::fetch('SELECT COUNT(*) as c' . $where, $params)['c'] ?? 0);
+        $totalPages = max(1, (int) ceil($total / $perPage));
+        if ($page > $totalPages) {
+            $page = $totalPages;
+            $offset = ($page - 1) * $perPage;
+        }
+
+        $sql = 'SELECT *' . $where
+            . ' ORDER BY completed ASC, CASE priority WHEN "high" THEN 1 WHEN "medium" THEN 2 ELSE 3 END, due_date ASC NULLS LAST'
+            . ' LIMIT ' . $perPage . ' OFFSET ' . $offset;
 
         $tasks      = Database::fetchAll($sql, $params);
         $categories = Database::fetchAll(
@@ -33,7 +46,7 @@ class TaskController
         $taskCategories = ['Personal', 'Work', 'Health', 'Finance', 'Learning', 'Home', 'Other'];
         $pageTitle      = 'Tasks';
 
-        view('pages/tasks', compact('tasks', 'categories', 'taskCategories', 'counts', 'filter', 'priority', 'category', 'pageTitle'));
+        view('pages/tasks', compact('tasks', 'categories', 'taskCategories', 'counts', 'filter', 'priority', 'category', 'pageTitle', 'page', 'perPage', 'total', 'totalPages'));
     }
 
     public static function store(): void

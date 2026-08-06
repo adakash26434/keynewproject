@@ -12,7 +12,7 @@ class AuthController
         Auth::requireGuest();
         Auth::verifyCsrf();
 
-        $email    = sanitize(input('email', ''));
+        $email    = strtolower(sanitize(input('email', '')));
         $password = input('password', '');
 
         $loginKey = Auth::throttleKey('login', $email !== '' ? $email : 'unknown');
@@ -58,7 +58,7 @@ class AuthController
         Auth::verifyCsrf();
 
         $name     = sanitize(input('name', ''));
-        $email    = sanitize(input('email', ''));
+        $email    = strtolower(sanitize(input('email', '')));
         $password = input('password', '');
         $confirm  = input('password_confirm', '');
 

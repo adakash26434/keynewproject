@@ -7,20 +7,33 @@ class DocumentController
         $uid    = userId();
         $search = sanitize(input('q', ''));
         $type   = sanitize(input('type', ''));
+        $page   = max(1, (int) input('page', 1));
+        $perPage = (int) input('per_page', 30);
+        $perPage = max(10, min($perPage, 80));
+        $offset = ($page - 1) * $perPage;
 
-        $sql    = 'SELECT id, title, type, number, issued_by, issue_date, expiry_date, notes, created_at FROM documents WHERE user_id = ?';
+        $where  = ' FROM documents WHERE user_id = ?';
         $params = [$uid];
 
         if ($search) {
-            $sql    .= ' AND (title LIKE ? OR type LIKE ?)';
+            $where  .= ' AND (title LIKE ? OR type LIKE ?)';
             $params  = array_merge($params, ["%$search%", "%$search%"]);
         }
         if ($type) {
-            $sql    .= ' AND type = ?';
+            $where  .= ' AND type = ?';
             $params[] = $type;
         }
 
-        $sql .= ' ORDER BY title ASC';
+        $total = (int) (Database::fetch('SELECT COUNT(*) as c' . $where, $params)['c'] ?? 0);
+        $totalPages = max(1, (int) ceil($total / $perPage));
+        if ($page > $totalPages) {
+            $page = $totalPages;
+            $offset = ($page - 1) * $perPage;
+        }
+
+        $sql = 'SELECT id, title, type, number, issued_by, issue_date, expiry_date, notes, created_at'
+            . $where
+            . ' ORDER BY title ASC LIMIT ' . $perPage . ' OFFSET ' . $offset;
 
         $documents = Database::fetchAll($sql, $params);
         // Decrypt document numbers
@@ -36,7 +49,7 @@ class DocumentController
         ];
 
         $pageTitle = 'Documents';
-        view('pages/documents', compact('documents', 'types', 'search', 'type', 'pageTitle'));
+        view('pages/documents', compact('documents', 'types', 'search', 'type', 'pageTitle', 'page', 'perPage', 'total', 'totalPages'));
     }
 
     public static function store(): void

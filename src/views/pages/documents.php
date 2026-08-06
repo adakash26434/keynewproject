@@ -90,6 +90,20 @@ $statusLabels  = ['expired'=>'Expired','expiring-soon'=>'Expiring soon','valid'=
     </div>
     <?php endforeach; ?>
   </div>
+  <?php if (($totalPages ?? 1) > 1): ?>
+  <div class="flex items-center justify-between text-sm text-slate-500 px-1 mt-2">
+    <span>Showing page <?= (int) $page ?> of <?= (int) $totalPages ?> (<?= (int) $total ?> total)</span>
+    <div class="flex items-center gap-2">
+      <?php $baseQuery = 'q=' . urlencode($search) . '&type=' . urlencode($type) . '&per_page=' . (int) ($perPage ?? 30); ?>
+      <?php if ($page > 1): ?>
+      <a href="/documents?<?= $baseQuery ?>&page=<?= $page - 1 ?>" class="btn-secondary text-xs py-1.5 px-3">Prev</a>
+      <?php endif; ?>
+      <?php if ($page < $totalPages): ?>
+      <a href="/documents?<?= $baseQuery ?>&page=<?= $page + 1 ?>" class="btn-secondary text-xs py-1.5 px-3">Next</a>
+      <?php endif; ?>
+    </div>
+  </div>
+  <?php endif; ?>
   <?php endif; ?>
 
   <!-- Add / Edit Modal -->

@@ -7,11 +7,28 @@ class FinanceController
         $uid   = userId();
         $year  = (int) input('year', date('Y'));
         $month = (int) input('month', date('n'));
+        $page  = max(1, (int) input('page', 1));
+        $perPage = (int) input('per_page', 60);
+        $perPage = max(20, min($perPage, 150));
+        $offset = ($page - 1) * $perPage;
 
         $monthStr = sprintf('%04d-%02d', $year, $month);
 
+        $total = (int) (Database::fetch(
+            "SELECT COUNT(*) as c FROM finance_records WHERE user_id = ? AND strftime('%Y-%m', record_date) = ?",
+            [$uid, $monthStr]
+        )['c'] ?? 0);
+        $totalPages = max(1, (int) ceil($total / $perPage));
+        if ($page > $totalPages) {
+            $page = $totalPages;
+            $offset = ($page - 1) * $perPage;
+        }
+
         $records = Database::fetchAll(
-            "SELECT * FROM finance_records WHERE user_id = ? AND strftime('%Y-%m', record_date) = ? ORDER BY record_date DESC, created_at DESC",
+            "SELECT * FROM finance_records
+             WHERE user_id = ? AND strftime('%Y-%m', record_date) = ?
+             ORDER BY record_date DESC, created_at DESC
+             LIMIT " . $perPage . " OFFSET " . $offset,
             [$uid, $monthStr]
         );
 
@@ -47,7 +64,7 @@ class FinanceController
         view('pages/finance', compact(
             'records', 'income', 'expenses', 'balance',
             'byCategory', 'categories', 'year', 'month', 'monthStr',
-            'monthNames', 'pageTitle'
+            'monthNames', 'pageTitle', 'page', 'perPage', 'total', 'totalPages'
         ));
     }
 

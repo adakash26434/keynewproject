@@ -11,6 +11,10 @@ class Database
                 PDO::ATTR_DEFAULT_FETCH_MODE => PDO::FETCH_ASSOC,
             ]);
             self::$instance->exec('PRAGMA journal_mode=WAL');
+            self::$instance->exec('PRAGMA synchronous=NORMAL');
+            self::$instance->exec('PRAGMA busy_timeout=5000');
+            self::$instance->exec('PRAGMA temp_store=MEMORY');
+            self::$instance->exec('PRAGMA cache_size=-20000');
             self::$instance->exec('PRAGMA foreign_keys=ON');
             self::migrate(self::$instance);
         }
@@ -123,6 +127,17 @@ class Database
                 password_hash TEXT NOT NULL,
                 created_at TEXT NOT NULL DEFAULT (datetime('now'))
             );
+
+            CREATE INDEX IF NOT EXISTS idx_passwords_user_title ON passwords(user_id, title);
+            CREATE INDEX IF NOT EXISTS idx_passwords_user_category ON passwords(user_id, category);
+            CREATE INDEX IF NOT EXISTS idx_documents_user_title ON documents(user_id, title);
+            CREATE INDEX IF NOT EXISTS idx_documents_user_type ON documents(user_id, type);
+            CREATE INDEX IF NOT EXISTS idx_finance_user_date ON finance_records(user_id, record_date);
+            CREATE INDEX IF NOT EXISTS idx_finance_user_type_date ON finance_records(user_id, type, record_date);
+            CREATE INDEX IF NOT EXISTS idx_tasks_user_completed_priority_due ON tasks(user_id, completed, priority, due_date);
+            CREATE INDEX IF NOT EXISTS idx_tasks_user_category ON tasks(user_id, category);
+            CREATE INDEX IF NOT EXISTS idx_login_sessions_user_active ON login_sessions(user_id, last_active);
+            CREATE INDEX IF NOT EXISTS idx_password_history_user_created ON password_history(user_id, created_at);
         ");
     }
 

@@ -7,16 +7,36 @@ class PasswordController
         $uid    = userId();
         $search = sanitize(input('q', ''));
         $cat    = sanitize(input('category', ''));
+        $page   = max(1, (int) input('page', 1));
+        $perPage = (int) input('per_page', 40);
+        $perPage = max(10, min($perPage, 100));
+        $offset = ($page - 1) * $perPage;
 
-        $sql    = 'SELECT id, title, username, url, category, strength, created_at FROM passwords WHERE user_id = ?';
+        $where = ' FROM passwords WHERE user_id = ?';
         $params = [$uid];
 
+        if ($search !== '') {
+            $where .= ' AND (title LIKE ? OR url LIKE ? OR category LIKE ?)';
+            $params[] = "%$search%";
+            $params[] = "%$search%";
+            $params[] = "%$search%";
+        }
+
         if ($cat) {
-            $sql    .= ' AND category = ?';
+            $where .= ' AND category = ?';
             $params[] = $cat;
         }
 
-        $sql .= ' ORDER BY title ASC';
+        $total = (int) (Database::fetch('SELECT COUNT(*) as c' . $where, $params)['c'] ?? 0);
+        $totalPages = max(1, (int) ceil($total / $perPage));
+        if ($page > $totalPages) {
+            $page = $totalPages;
+            $offset = ($page - 1) * $perPage;
+        }
+
+        $sql = 'SELECT id, title, username, url, category, strength, created_at'
+            . $where
+            . ' ORDER BY title ASC LIMIT ' . $perPage . ' OFFSET ' . $offset;
 
         $passwords  = Database::fetchAll($sql, $params);
         foreach ($passwords as &$pw) {
@@ -24,22 +44,12 @@ class PasswordController
         }
         unset($pw);
 
-        if ($search !== '') {
-            $needle = strtolower($search);
-            $passwords = array_values(array_filter($passwords, function (array $pw) use ($needle): bool {
-                $haystack = strtolower(
-                    ($pw['title'] ?? '') . ' ' . ($pw['username'] ?? '') . ' ' . ($pw['url'] ?? '') . ' ' . ($pw['category'] ?? '')
-                );
-                return str_contains($haystack, $needle);
-            }));
-        }
-
         $categories = Database::fetchAll(
             'SELECT DISTINCT category FROM passwords WHERE user_id = ? ORDER BY category', [$uid]
         );
 
         $pageTitle = 'Password Vault';
-        view('pages/passwords', compact('passwords', 'categories', 'search', 'cat', 'pageTitle'));
+        view('pages/passwords', compact('passwords', 'categories', 'search', 'cat', 'pageTitle', 'page', 'perPage', 'total', 'totalPages'));
     }
 
     public static function store(): void
