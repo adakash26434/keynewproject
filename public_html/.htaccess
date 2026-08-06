@@ -1,0 +1,14 @@
+Options -MultiViews -Indexes
+RewriteEngine On
+
+# Block direct access if app internals were uploaded inside public_html
+RewriteRule ^data(/.*)?$ - [F,L]
+RewriteRule ^src(/.*)?$ - [F,L]
+
+# Serve existing files/folders directly
+RewriteCond %{REQUEST_FILENAME} -f [OR]
+RewriteCond %{REQUEST_FILENAME} -d
+RewriteRule ^ - [L]
+
+# Route app requests via index.php
+RewriteRule ^ index.php [QSA,L]

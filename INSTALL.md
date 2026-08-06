@@ -8,19 +8,34 @@
 
 ## Deployment Steps
 
-### Option A: Root Domain / Subdomain
-1. Upload all files to `public_html/`
-2. The `data/` folder must be writable by PHP: `chmod 700 data/`
-3. Visit your domain — the app will auto-create the SQLite database
+### Option A (Recommended): Use repo `public_html/` as web root
+This is more secure because `src/` and `data/` stay outside direct web access.
 
-### Option B: Subfolder (e.g. /wallet)
-1. Upload all files to `public_html/wallet/`
-2. Make `data/` writable: `chmod 700 data/`
-3. Visit `yourdomain.com/wallet/`
+1. Upload full project folder (keep structure as-is):
+	- `public_html/`
+	- `src/`
+	- `data/`
+2. Point your domain/subdomain document root to the project's `public_html/` folder.
+3. Make `data/` writable by PHP: `chmod 700 data/`
+4. Visit your domain.
+
+### Option B: Direct upload into hosting `public_html/`
+Use this if your host does not allow custom document root.
+
+1. Upload project files directly inside your hosting `public_html/`.
+2. Keep `.htaccess`, `router.php`, `src/`, and `data/` together.
+3. Make `data/` writable by PHP: `chmod 700 data/`
+4. Visit your domain.
+
+### Option C: Subfolder deployment (e.g. `/wallet`)
+1. Upload project to `public_html/wallet/`.
+2. Make `public_html/wallet/data/` writable: `chmod 700 public_html/wallet/data/`
+3. Visit `yourdomain.com/wallet/`.
 
 ## .htaccess (Apache URL Rewriting)
-The included `.htaccess` handles URL routing automatically.
-No extra configuration needed on Apache/LiteSpeed servers.
+- If using Option A (recommended), use `public_html/.htaccess`.
+- If using Option B/C (flat deploy), use project root `.htaccess`.
+Both are included in this repository.
 
 ## Environment Variables (Optional)
 Create a `.env` file in the root with:
