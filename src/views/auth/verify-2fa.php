@@ -4,13 +4,14 @@
 <meta charset="UTF-8">
 <meta name="viewport" content="width=device-width, initial-scale=1.0">
 <title>Verify 2FA — <?= e(siteSetting('site_name', APP_NAME)) ?></title>
+<link rel="stylesheet" href="/assets/global-theme.css?v=2">
 <link rel="preconnect" href="https://fonts.googleapis.com">
 <link href="https://fonts.googleapis.com/css2?family=Plus+Jakarta+Sans:wght@400;500;600;700&display=swap" rel="stylesheet">
 <script src="https://cdn.tailwindcss.com"></script>
 <script defer src="https://cdn.jsdelivr.net/npm/alpinejs@3.x.x/dist/cdn.min.js"></script>
 <style>body { font-family: 'Plus Jakarta Sans', sans-serif; }</style>
 </head>
-<body class="bg-[#F3F5F7] min-h-full flex items-center justify-center py-12 px-4">
+<body class="theme-app bg-[#F3F5F7] min-h-full flex items-center justify-center py-12 px-4">
 <div class="w-full max-w-sm">
   <div class="flex flex-col items-center mb-8">
     <div class="w-12 h-12 bg-blue-600 rounded-2xl flex items-center justify-center mb-4 shadow-lg shadow-blue-200">

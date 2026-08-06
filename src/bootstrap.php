@@ -102,6 +102,18 @@ $router->post('/admin/settings', [AdminController::class, 'updateSiteSettings'])
 // ── Global Search (JSON) ──────────────────────────────────────────────────────
 $router->get('/search', [SearchController::class, 'search']);
 
+// ── Global theme CSS ──────────────────────────────────────────────────────────
+$router->get('/assets/global-theme.css', function () {
+    $themePath = __DIR__ . '/assets/global-theme.css';
+    if (!is_file($themePath)) {
+        http_response_code(404);
+        exit;
+    }
+    header('Content-Type: text/css; charset=utf-8');
+    readfile($themePath);
+    exit;
+});
+
 // ── PWA assets ────────────────────────────────────────────────────────────────
 $router->get('/manifest.webmanifest', function () {
     header('Content-Type: application/manifest+json; charset=utf-8');

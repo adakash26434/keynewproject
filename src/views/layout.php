@@ -12,10 +12,12 @@
 ?>
 <title><?= e($pageTitle ?? 'Dashboard') ?> — <?= e($siteName) ?></title>
 <link rel="manifest" href="/manifest.webmanifest">
+<link rel="stylesheet" href="/assets/global-theme.css?v=2">
 <link rel="preconnect" href="https://fonts.googleapis.com">
 <link href="https://fonts.googleapis.com/css2?family=Plus+Jakarta+Sans:wght@400;500;600;700&display=swap" rel="stylesheet">
 <script src="https://cdn.tailwindcss.com"></script>
 <script defer src="https://cdn.jsdelivr.net/npm/alpinejs@3.x.x/dist/cdn.min.js"></script>
+<script defer src="https://unpkg.com/lucide@0.468.0/dist/umd/lucide.min.js"></script>
 <script>
 tailwind.config = {
   theme: {
@@ -28,112 +30,8 @@ tailwind.config = {
   }
 }
 </script>
-<style>
-body { font-family: 'Plus Jakarta Sans', sans-serif; }
-.sidebar-link {
-  display: flex;
-  align-items: center;
-  gap: 0.75rem;
-  padding: 0.625rem 0.75rem;
-  border-radius: 0.5rem;
-  font-size: 0.875rem;
-  font-weight: 500;
-  color: rgb(71 85 105);
-  transition: all 0.2s ease;
-}
-.sidebar-link:hover {
-  background: rgb(241 245 249);
-  color: rgb(15 23 42);
-}
-.sidebar-link.active {
-  background: rgb(239 246 255);
-  color: rgb(29 78 216);
-  font-weight: 600;
-}
-.sidebar-section {
-  padding: 1rem 0.75rem 0.25rem;
-  font-size: 10px;
-  font-weight: 700;
-  text-transform: uppercase;
-  letter-spacing: 0.08em;
-  color: rgb(148 163 184);
-}
-.card {
-  background: #fff;
-  border-radius: 0.75rem;
-  border: 1px solid rgb(226 232 240);
-  box-shadow: 0 1px 2px 0 rgb(15 23 42 / 0.06);
-}
-.btn-primary,
-.btn-secondary,
-.btn-danger {
-  display: inline-flex;
-  align-items: center;
-  gap: 0.5rem;
-  padding: 0.5rem 1rem;
-  border-radius: 0.5rem;
-  font-size: 0.875rem;
-  font-weight: 600;
-  transition: background-color 0.2s ease, color 0.2s ease, border-color 0.2s ease;
-}
-.btn-primary {
-  background: rgb(37 99 235);
-  color: #fff;
-}
-.btn-primary:hover {
-  background: rgb(29 78 216);
-}
-.btn-secondary {
-  background: #fff;
-  color: rgb(51 65 85);
-  border: 1px solid rgb(203 213 225);
-}
-.btn-secondary:hover {
-  background: rgb(248 250 252);
-}
-.btn-danger {
-  background: rgb(220 38 38);
-  color: #fff;
-}
-.btn-danger:hover {
-  background: rgb(185 28 28);
-}
-.form-input {
-  width: 100%;
-  border-radius: 0.5rem;
-  border: 1px solid rgb(203 213 225);
-  padding: 0.5rem 0.75rem;
-  font-size: 0.875rem;
-  color: rgb(15 23 42);
-  transition: border-color 0.2s ease, box-shadow 0.2s ease;
-}
-.form-input::placeholder {
-  color: rgb(148 163 184);
-}
-.form-input:focus {
-  outline: none;
-  border-color: rgb(59 130 246);
-  box-shadow: 0 0 0 2px rgb(59 130 246 / 0.25);
-}
-.form-label {
-  display: block;
-  margin-bottom: 0.25rem;
-  font-size: 0.875rem;
-  font-weight: 500;
-  color: rgb(51 65 85);
-}
-.badge {
-  display: inline-flex;
-  align-items: center;
-  padding: 0.125rem 0.5rem;
-  border-radius: 9999px;
-  font-size: 0.75rem;
-  font-weight: 500;
-}
-[x-cloak] { display: none !important; }
-</style>
 </head>
-<body class="bg-slate-100 h-full"
+<body class="theme-app bg-slate-100 h-full"
   x-data="{
     sidebarOpen: false,
     isMobile: window.matchMedia('(max-width: 1023px)').matches,
@@ -144,6 +42,7 @@ body { font-family: 'Plus Jakarta Sans', sans-serif; }
     searchLoading: false,
     pwaPromptEvent: null,
     showInstallPrompt: false,
+    shareMessage: '',
     init() {
       this.sidebarOpen = !this.isMobile;
       window.addEventListener('resize', () => {
@@ -167,6 +66,12 @@ body { font-family: 'Plus Jakarta Sans', sans-serif; }
           navigator.serviceWorker.register('/sw.js').catch(() => null);
         });
       }
+
+      window.addEventListener('load', () => {
+        if (window.lucide && typeof window.lucide.createIcons === 'function') {
+          window.lucide.createIcons();
+        }
+      });
     },
     async installPwa() {
       if (!this.pwaPromptEvent) return;
@@ -176,6 +81,29 @@ body { font-family: 'Plus Jakarta Sans', sans-serif; }
         this.showInstallPrompt = false;
       }
       this.pwaPromptEvent = null;
+    },
+    async shareCurrentPage() {
+      const payload = {
+        title: document.title,
+        text: 'Check this page on ' + <?= json_encode($siteName) ?>,
+        url: window.location.href,
+      };
+
+      try {
+        if (navigator.share) {
+          await navigator.share(payload);
+          this.shareMessage = 'Shared successfully';
+        } else if (navigator.clipboard && navigator.clipboard.writeText) {
+          await navigator.clipboard.writeText(window.location.href);
+          this.shareMessage = 'Link copied to clipboard';
+        } else {
+          this.shareMessage = 'Sharing is not supported on this browser';
+        }
+      } catch (e) {
+        this.shareMessage = 'Share cancelled';
+      }
+
+      setTimeout(() => { this.shareMessage = ''; }, 2200);
     },
     async doSearch() {
       if (this.searchQuery.length < 2) {
@@ -378,6 +306,11 @@ body { font-family: 'Plus Jakarta Sans', sans-serif; }
           <?= e($maintenanceNotice) ?>
         </span>
         <?php endif; ?>
+        <button @click="shareCurrentPage()"
+          class="hidden sm:inline-flex items-center gap-2 px-3 py-1.5 text-xs font-semibold text-slate-700 bg-slate-100 hover:bg-slate-200 rounded-lg transition-colors">
+          <i data-lucide="share-2" class="icon-16"></i>
+          Share
+        </button>
         <button x-show="showInstallPrompt" x-cloak @click="installPwa()"
           class="hidden sm:inline-flex items-center gap-2 px-3 py-1.5 text-xs font-semibold text-emerald-700 bg-emerald-50 hover:bg-emerald-100 rounded-lg transition-colors">
           Install App
@@ -426,6 +359,10 @@ body { font-family: 'Plus Jakarta Sans', sans-serif; }
 
     <div x-show="searchError && searchOpen" x-cloak class="fixed top-4 right-4 z-[60] bg-amber-50 border border-amber-200 text-amber-800 px-3 py-2 rounded-lg text-xs shadow">
       <span x-text="searchError"></span>
+    </div>
+
+    <div x-show="shareMessage" x-cloak x-transition class="fixed top-4 right-4 z-[60] bg-slate-900 text-white px-3 py-2 rounded-lg text-xs shadow">
+      <span x-text="shareMessage"></span>
     </div>
 
     <!-- Page content -->

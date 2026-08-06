@@ -6,6 +6,14 @@
 - OpenSSL extension (enabled by default)
 - mbstring extension (enabled by default)
 
+## Tech Stack
+- Backend: PHP 8.x (compatible with 7.4+ coding patterns)
+- Database: MySQL/MariaDB or SQLite (switchable via `DB_DRIVER`)
+- Frontend UI: Tailwind CSS + Alpine.js
+- Global UI System: `/assets/global-theme.css` (theme tokens + shared classes)
+- Icons: Lucide (CDN UMD build)
+- Share UX: top-bar share action with Web Share API and clipboard fallback
+
 ## Database Setup (Important)
 - No manual database setup is required.
 - The app automatically creates `data/wallet.db` and all required tables on first request.
