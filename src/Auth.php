@@ -101,6 +101,7 @@ class Auth
     public static function login(array $user): void
     {
         session_regenerate_id(true);
+        self::rotateCsrfToken();
         $_SESSION['user_id']    = $user['id'];
         $_SESSION['user_email'] = $user['email'];
         $_SESSION['user_name']  = $user['name'];
@@ -111,6 +112,7 @@ class Auth
     public static function completeTwoFactor(): void
     {
         session_regenerate_id(true);
+        self::rotateCsrfToken();
         $_SESSION['totp_passed'] = true;
         unset($_SESSION['awaiting_totp_user_id']);
 
@@ -320,6 +322,11 @@ class Auth
             $_SESSION['csrf_token'] = bin2hex(random_bytes(32));
         }
         return $_SESSION['csrf_token'];
+    }
+
+    public static function rotateCsrfToken(): void
+    {
+        $_SESSION['csrf_token'] = bin2hex(random_bytes(32));
     }
 
     public static function verifyCsrf(): void
