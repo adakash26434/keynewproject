@@ -1,0 +1,16 @@
+Options -MultiViews -Indexes
+RewriteEngine On
+
+# Block direct access to data/ directory
+RewriteRule ^data(/.*)?$ - [F,L]
+
+# Block direct access to src/ directory  
+RewriteRule ^src(/.*)?$ - [F,L]
+
+# Serve existing static files directly (CSS, JS, images, fonts)
+RewriteCond %{REQUEST_FILENAME} -f [OR]
+RewriteCond %{REQUEST_FILENAME} -d
+RewriteRule ^ - [L]
+
+# Route everything else through the router
+RewriteRule ^ router.php [QSA,L]

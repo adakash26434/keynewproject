@@ -1,0 +1,75 @@
+<?php
+class ProfileController
+{
+    public static function index(): void
+    {
+        Auth::requireAuth();
+        $user      = Database::fetch('SELECT * FROM users WHERE id = ?', [userId()]);
+        $pageTitle = 'Profile';
+        view('pages/profile', compact('user', 'pageTitle'));
+    }
+
+    public static function update(): void
+    {
+        Auth::requireAuth();
+        Auth::verifyCsrf();
+        $uid = userId();
+
+        $name     = sanitize(input('name', ''));
+        $bio      = sanitize(input('bio', ''));
+        $phone    = sanitize(input('phone', ''));
+        $location = sanitize(input('location', ''));
+
+        if (!$name) {
+            flash('error', 'Name is required.');
+            redirect('/profile');
+        }
+
+        Database::execute(
+            "UPDATE users SET name=?, bio=?, phone=?, location=?, updated_at=datetime('now') WHERE id=?",
+            [$name, $bio, $phone, $location, $uid]
+        );
+
+        // Update session name
+        $_SESSION['user_name'] = $name;
+
+        flash('success', 'Profile updated successfully.');
+        redirect('/profile');
+    }
+
+    public static function changePassword(): void
+    {
+        Auth::requireAuth();
+        Auth::verifyCsrf();
+        $uid = userId();
+
+        $current = input('current_password', '');
+        $new     = input('new_password', '');
+        $confirm = input('confirm_password', '');
+
+        $user = Database::fetch('SELECT password_hash FROM users WHERE id = ?', [$uid]);
+
+        if (!Auth::verifyPassword($current, $user['password_hash'])) {
+            flash('error', 'Current password is incorrect.');
+            redirect('/profile');
+        }
+
+        if (strlen($new) < 8) {
+            flash('error', 'New password must be at least 8 characters.');
+            redirect('/profile');
+        }
+
+        if ($new !== $confirm) {
+            flash('error', 'New passwords do not match.');
+            redirect('/profile');
+        }
+
+        Database::execute(
+            "UPDATE users SET password_hash=?, updated_at=datetime('now') WHERE id=?",
+            [Auth::hashPassword($new), $uid]
+        );
+
+        flash('success', 'Password changed successfully.');
+        redirect('/profile');
+    }
+}
