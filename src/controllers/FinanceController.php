@@ -13,9 +13,10 @@ class FinanceController
         $offset = ($page - 1) * $perPage;
 
         $monthStr = sprintf('%04d-%02d', $year, $month);
+        $yearMonthExpr = Database::yearMonthExpression('record_date');
 
         $total = (int) (Database::fetch(
-            "SELECT COUNT(*) as c FROM finance_records WHERE user_id = ? AND strftime('%Y-%m', record_date) = ?",
+            'SELECT COUNT(*) as c FROM finance_records WHERE user_id = ? AND ' . $yearMonthExpr . ' = ?',
             [$uid, $monthStr]
         )['c'] ?? 0);
         $totalPages = max(1, (int) ceil($total / $perPage));
@@ -25,10 +26,10 @@ class FinanceController
         }
 
         $records = Database::fetchAll(
-            "SELECT * FROM finance_records
-             WHERE user_id = ? AND strftime('%Y-%m', record_date) = ?
+            'SELECT * FROM finance_records
+             WHERE user_id = ? AND ' . $yearMonthExpr . ' = ?
              ORDER BY record_date DESC, created_at DESC
-             LIMIT " . $perPage . " OFFSET " . $offset,
+             LIMIT ' . $perPage . ' OFFSET ' . $offset,
             [$uid, $monthStr]
         );
 
@@ -119,7 +120,7 @@ class FinanceController
         }
 
         Database::execute(
-            "UPDATE finance_records SET type=?, amount=?, category=?, description=?, record_date=?, updated_at=datetime('now') WHERE id=? AND user_id=?",
+            'UPDATE finance_records SET type=?, amount=?, category=?, description=?, record_date=?, updated_at=' . Database::nowExpression() . ' WHERE id=? AND user_id=?',
             [$type, $amount, $category, $description, $record_date, $id, $uid]
         );
 
@@ -136,10 +137,11 @@ class FinanceController
         $year  = (int) input('year', date('Y'));
         $month = (int) input('month', date('n'));
         $monthStr = sprintf('%04d-%02d', $year, $month);
+        $yearMonthExpr = Database::yearMonthExpression('record_date');
 
         $records = Database::fetchAll(
-            "SELECT type, amount, category FROM finance_records
-             WHERE user_id = ? AND strftime('%Y-%m', record_date) = ?",
+            'SELECT type, amount, category FROM finance_records
+             WHERE user_id = ? AND ' . $yearMonthExpr . ' = ?',
             [$uid, $monthStr]
         );
 
@@ -164,8 +166,8 @@ class FinanceController
             $ms  = date('Y-m', $ts);
             $mn  = date('M y', $ts);
             $recs = Database::fetchAll(
-                "SELECT type, amount FROM finance_records
-                 WHERE user_id = ? AND strftime('%Y-%m', record_date) = ?",
+                'SELECT type, amount FROM finance_records
+                 WHERE user_id = ? AND ' . $yearMonthExpr . ' = ?',
                 [$uid, $ms]
             );
             $inc = array_sum(array_column(array_filter($recs, fn($r)=>$r['type']==='income'), 'amount'));

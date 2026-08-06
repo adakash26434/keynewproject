@@ -105,7 +105,7 @@ class DocumentController
         }
 
         Database::execute(
-            "UPDATE documents SET title=?, type=?, number=?, issued_by=?, issue_date=?, expiry_date=?, notes=?, updated_at=datetime('now') WHERE id=? AND user_id=?",
+            'UPDATE documents SET title=?, type=?, number=?, issued_by=?, issue_date=?, expiry_date=?, notes=?, updated_at=' . Database::nowExpression() . ' WHERE id=? AND user_id=?',
             [$title, $type, Crypto::encrypt($number), $issued_by, $issue_date ?: null, $expiry_date ?: null, $notes, $id, $uid]
         );
 

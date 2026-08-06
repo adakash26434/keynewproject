@@ -199,7 +199,7 @@ class Auth
 
         Database::execute(
             'INSERT INTO login_sessions (user_id, session_token, user_agent, ip_address, last_active)
-             VALUES (?, ?, ?, ?, datetime(\'now\'))',
+             VALUES (?, ?, ?, ?, ' . Database::nowExpression() . ')',
             [
                 $userId,
                 $token,
@@ -245,12 +245,12 @@ class Auth
 
         if ($sessionId > 0) {
             Database::execute(
-                'UPDATE login_sessions SET last_active = datetime(\'now\') WHERE user_id = ? AND id = ?',
+                'UPDATE login_sessions SET last_active = ' . Database::nowExpression() . ' WHERE user_id = ? AND id = ?',
                 [$userId, $sessionId]
             );
         } else {
             Database::execute(
-                'UPDATE login_sessions SET last_active = datetime(\'now\') WHERE user_id = ? AND session_token = ?',
+                'UPDATE login_sessions SET last_active = ' . Database::nowExpression() . ' WHERE user_id = ? AND session_token = ?',
                 [$userId, $token]
             );
         }

@@ -2,6 +2,44 @@
 $scoreColor = $score >= 80 ? 'text-green-600' : ($score >= 50 ? 'text-amber-600' : 'text-red-600');
 $scoreBg    = $score >= 80 ? 'bg-green-50 border-green-200' : ($score >= 50 ? 'bg-amber-50 border-amber-200' : 'bg-red-50 border-red-200');
 ?>
+<!-- Hero + Quick actions -->
+<div class="card p-6 mb-6 bg-gradient-to-r from-slate-900 via-slate-800 to-blue-900 text-white border-0 shadow-lg">
+  <div class="flex flex-col lg:flex-row lg:items-center lg:justify-between gap-4">
+    <div>
+      <p class="text-xs uppercase tracking-[0.18em] text-blue-200 font-semibold">Today Overview</p>
+      <h2 class="text-2xl font-bold mt-1">Welcome back, <?= e(explode(' ', Auth::user()['name'] ?? 'User')[0]) ?></h2>
+      <p class="text-sm text-slate-200 mt-1">Secure your digital life, clear pending tasks, and keep documents up to date.</p>
+    </div>
+    <div class="grid grid-cols-2 gap-2 w-full lg:w-auto">
+      <a href="/passwords" class="inline-flex items-center justify-center px-3 py-2 rounded-lg bg-white/10 hover:bg-white/20 text-xs font-semibold transition-colors">Add Password</a>
+      <a href="/documents" class="inline-flex items-center justify-center px-3 py-2 rounded-lg bg-white/10 hover:bg-white/20 text-xs font-semibold transition-colors">Add Document</a>
+      <a href="/tasks" class="inline-flex items-center justify-center px-3 py-2 rounded-lg bg-white/10 hover:bg-white/20 text-xs font-semibold transition-colors">Create Task</a>
+      <a href="/finance" class="inline-flex items-center justify-center px-3 py-2 rounded-lg bg-white/10 hover:bg-white/20 text-xs font-semibold transition-colors">Track Expense</a>
+    </div>
+  </div>
+</div>
+
+<?php if (!empty($smartAlerts)): ?>
+<div class="card p-5 mb-6">
+  <div class="flex items-center justify-between mb-3">
+    <h3 class="text-sm font-semibold text-slate-900">Smart Alerts</h3>
+    <a href="/insights" class="text-xs text-blue-600 hover:underline font-medium">Open insights</a>
+  </div>
+  <div class="space-y-2">
+    <?php foreach ($smartAlerts as $a): ?>
+    <?php
+      $sev = (string) ($a['severity'] ?? 'low');
+      $cls = $sev === 'high' ? 'bg-red-50 border-red-200 text-red-700' : ($sev === 'medium' ? 'bg-amber-50 border-amber-200 text-amber-700' : 'bg-blue-50 border-blue-200 text-blue-700');
+    ?>
+    <a href="<?= e((string) ($a['url'] ?? '/dashboard')) ?>" class="block border rounded-xl px-3 py-2.5 hover:shadow-sm transition-shadow <?= $cls ?>">
+      <p class="text-sm font-semibold"><?= e((string) ($a['title'] ?? 'Alert')) ?></p>
+      <p class="text-xs mt-0.5"><?= e((string) ($a['message'] ?? '')) ?></p>
+    </a>
+    <?php endforeach; ?>
+  </div>
+</div>
+<?php endif; ?>
+
 <!-- Stats Grid -->
 <div class="grid grid-cols-2 lg:grid-cols-4 gap-4 mb-6">
   <div class="card p-5">
@@ -74,6 +112,18 @@ $scoreBg    = $score >= 80 ? 'bg-green-50 border-green-200' : ($score >= 50 ? 'b
     <div class="text-xs text-amber-700 bg-amber-50 rounded-lg p-2.5 flex items-start gap-2">
       <svg class="w-4 h-4 flex-shrink-0 mt-0.5" fill="currentColor" viewBox="0 0 20 20"><path fill-rule="evenodd" d="M8.257 3.099c.765-1.36 2.722-1.36 3.486 0l5.58 9.92c.75 1.334-.213 2.98-1.742 2.98H4.42c-1.53 0-2.493-1.646-1.743-2.98l5.58-9.92zM11 13a1 1 0 11-2 0 1 1 0 012 0zm-1-8a1 1 0 00-1 1v3a1 1 0 002 0V6a1 1 0 00-1-1z" clip-rule="evenodd"/></svg>
       <?= $weakCount ?> weak password<?= $weakCount > 1 ? 's' : '' ?> found
+    </div>
+    <?php endif; ?>
+    <?php if (($duplicateCount ?? 0) > 0): ?>
+    <div class="text-xs text-red-700 bg-red-50 rounded-lg p-2.5 flex items-start gap-2 mt-2">
+      <svg class="w-4 h-4 flex-shrink-0 mt-0.5" fill="currentColor" viewBox="0 0 20 20"><path fill-rule="evenodd" d="M8.257 3.099c.765-1.36 2.722-1.36 3.486 0l5.58 9.92c.75 1.334-.213 2.98-1.742 2.98H4.42c-1.53 0-2.493-1.646-1.743-2.98l5.58-9.92zM11 13a1 1 0 11-2 0 1 1 0 012 0zm-1-8a1 1 0 00-1 1v3a1 1 0 002 0V6a1 1 0 00-1-1z" clip-rule="evenodd"/></svg>
+      <?= (int) $duplicateCount ?> duplicate password<?= ((int) $duplicateCount) > 1 ? 's' : '' ?> detected
+    </div>
+    <?php endif; ?>
+    <?php if (($stalePwCount ?? 0) > 0): ?>
+    <div class="text-xs text-blue-700 bg-blue-50 rounded-lg p-2.5 flex items-start gap-2 mt-2">
+      <svg class="w-4 h-4 flex-shrink-0 mt-0.5" fill="currentColor" viewBox="0 0 20 20"><path fill-rule="evenodd" d="M10 18a8 8 0 100-16 8 8 0 000 16zm1-11a1 1 0 10-2 0v4a1 1 0 102 0V7zm-1 8a1.25 1.25 0 100-2.5A1.25 1.25 0 0010 15z" clip-rule="evenodd"/></svg>
+      <?= (int) $stalePwCount ?> password<?= ((int) $stalePwCount) > 1 ? 's are' : ' is' ?> older than 180 days
     </div>
     <?php endif; ?>
     <?php if (count($expiringDocs) > 0): ?>

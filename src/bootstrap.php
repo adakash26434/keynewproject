@@ -52,9 +52,14 @@ $router->get('/insights',   [InsightsController::class,  'index']);
 // ── Vault: Passwords ─────────────────────────────────────────────────────────
 $router->get('/passwords',              [PasswordController::class, 'index']);
 $router->post('/passwords',             [PasswordController::class, 'store']);
+$router->post('/passwords/import-csv',  [PasswordController::class, 'importCsv']);
+$router->post('/passwords/import-csv/confirm', [PasswordController::class, 'confirmImportCsv']);
+$router->post('/passwords/import-csv/remove-row', [PasswordController::class, 'removeImportPreviewRow']);
+$router->post('/passwords/import-csv/clear', [PasswordController::class, 'clearImportPreview']);
 $router->post('/passwords/{id}/update', [PasswordController::class, 'update']);
 $router->post('/passwords/{id}/delete', [PasswordController::class, 'delete']);
 $router->get('/passwords/{id}/reveal',  [PasswordController::class, 'reveal']);
+$router->get('/api/passwords/search',   [PasswordController::class, 'extensionSearch']);
 
 // ── Vault: Documents ─────────────────────────────────────────────────────────
 $router->get('/documents',              [DocumentController::class, 'index']);
@@ -90,6 +95,48 @@ $router->post('/profile/backup/import', [ProfileController::class, 'importBackup
 
 // ── Global Search (JSON) ──────────────────────────────────────────────────────
 $router->get('/search', [SearchController::class, 'search']);
+
+// ── PWA assets ────────────────────────────────────────────────────────────────
+$router->get('/manifest.webmanifest', function () {
+    header('Content-Type: application/manifest+json; charset=utf-8');
+    echo json_encode([
+        'name' => APP_NAME,
+        'short_name' => 'KeyWallet',
+        'start_url' => '/dashboard',
+        'scope' => '/',
+        'display' => 'standalone',
+        'background_color' => '#f1f5f9',
+        'theme_color' => '#0f172a',
+        'description' => 'Secure personal key wallet with passwords, documents, tasks and finance insights.',
+        'icons' => [
+            [
+                'src' => 'data:image/svg+xml,%3Csvg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 128 128"%3E%3Crect width="128" height="128" rx="24" fill="%230078D4"/%3E%3Cpath d="M86 36a12 12 0 0 1 12 12v1h6v16h-13l-8 8h-7v11H60V73H45a17 17 0 1 1 0-34h41Zm0 11H45a6 6 0 1 0 0 12h20v14h8V59h13a6 6 0 0 0 0-12Z" fill="white"/%3E%3C/svg%3E',
+                'sizes' => '128x128',
+                'type' => 'image/svg+xml',
+            ],
+        ],
+    ], JSON_UNESCAPED_SLASHES);
+    exit;
+});
+
+$router->get('/sw.js', function () {
+    header('Content-Type: application/javascript; charset=utf-8');
+    echo "const CACHE_NAME = 'keywallet-shell-v1';\n"
+       . "const URLS = ['/login', '/signup', '/dashboard', '/insights'];\n"
+       . "self.addEventListener('install', event => {\n"
+       . "  event.waitUntil(caches.open(CACHE_NAME).then(cache => cache.addAll(URLS)).catch(() => null));\n"
+       . "  self.skipWaiting();\n"
+       . "});\n"
+       . "self.addEventListener('activate', event => {\n"
+       . "  event.waitUntil(caches.keys().then(keys => Promise.all(keys.filter(k => k !== CACHE_NAME).map(k => caches.delete(k)))));\n"
+       . "  self.clients.claim();\n"
+       . "});\n"
+       . "self.addEventListener('fetch', event => {\n"
+       . "  if (event.request.method !== 'GET') return;\n"
+       . "  event.respondWith(fetch(event.request).catch(() => caches.match(event.request).then(r => r || caches.match('/dashboard'))));\n"
+       . "});\n";
+    exit;
+});
 
 // ── Static pages ──────────────────────────────────────────────────────────────
 $router->get('/privacy', function() {

@@ -29,7 +29,7 @@ class TaskController
         }
 
         $sql = 'SELECT *' . $where
-            . ' ORDER BY completed ASC, CASE priority WHEN "high" THEN 1 WHEN "medium" THEN 2 ELSE 3 END, due_date ASC NULLS LAST'
+            . ' ORDER BY completed ASC, CASE priority WHEN "high" THEN 1 WHEN "medium" THEN 2 ELSE 3 END, (due_date IS NULL) ASC, due_date ASC'
             . ' LIMIT ' . $perPage . ' OFFSET ' . $offset;
 
         $tasks      = Database::fetchAll($sql, $params);
@@ -103,7 +103,7 @@ class TaskController
         }
 
         Database::execute(
-            "UPDATE tasks SET title=?, description=?, priority=?, category=?, due_date=?, updated_at=datetime('now') WHERE id=? AND user_id=?",
+            'UPDATE tasks SET title=?, description=?, priority=?, category=?, due_date=?, updated_at=' . Database::nowExpression() . ' WHERE id=? AND user_id=?',
             [$title, $description, $priority, $category, $due_date ?: null, $id, $uid]
         );
 
@@ -135,7 +135,7 @@ class TaskController
 
         $newState = $row['completed'] ? 0 : 1;
         Database::execute(
-            "UPDATE tasks SET completed = ?, updated_at=datetime('now') WHERE id = ? AND user_id = ?",
+            'UPDATE tasks SET completed = ?, updated_at=' . Database::nowExpression() . ' WHERE id = ? AND user_id = ?',
             [$newState, $id, $uid]
         );
 

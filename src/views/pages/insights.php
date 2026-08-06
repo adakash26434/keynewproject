@@ -75,6 +75,62 @@ $filled = ($score / 100) * $circumference;
     </div>
   </div>
 
+  <!-- Password Health Center -->
+  <div class="card p-6">
+    <div class="flex items-start justify-between flex-wrap gap-3 mb-4">
+      <div>
+        <h3 class="font-semibold text-slate-900">Password Health Center</h3>
+        <p class="text-xs text-slate-500 mt-0.5">Fix critical password issues with one-click actions.</p>
+      </div>
+      <a href="/passwords" class="text-sm text-blue-600 hover:underline font-medium">Open Password Vault</a>
+    </div>
+
+    <div class="grid grid-cols-1 md:grid-cols-2 xl:grid-cols-5 gap-3">
+      <a href="/passwords?strength=weak" class="rounded-xl border border-red-200 bg-red-50 p-4 hover:bg-red-100 transition-colors">
+        <p class="text-[11px] uppercase tracking-wide text-red-700 font-semibold">Weak</p>
+        <p class="text-2xl font-black text-red-700 mt-1"><?= (int) $weakPw ?></p>
+        <p class="text-xs text-red-700/80 mt-1">Upgrade weak passwords</p>
+      </a>
+
+      <a href="/passwords" class="rounded-xl border border-amber-200 bg-amber-50 p-4 hover:bg-amber-100 transition-colors">
+        <p class="text-[11px] uppercase tracking-wide text-amber-700 font-semibold">Reused</p>
+        <p class="text-2xl font-black text-amber-700 mt-1"><?= (int) $duplicates ?></p>
+        <p class="text-xs text-amber-700/80 mt-1">Replace duplicate passwords</p>
+      </a>
+
+      <a href="/passwords" class="rounded-xl border border-orange-200 bg-orange-50 p-4 hover:bg-orange-100 transition-colors">
+        <p class="text-[11px] uppercase tracking-wide text-orange-700 font-semibold">Common Risk</p>
+        <p class="text-2xl font-black text-orange-700 mt-1"><?= (int) ($commonRiskPw ?? 0) ?></p>
+        <p class="text-xs text-orange-700/80 mt-1">Looks like breached patterns</p>
+      </a>
+
+      <a href="/passwords" class="rounded-xl border border-blue-200 bg-blue-50 p-4 hover:bg-blue-100 transition-colors">
+        <p class="text-[11px] uppercase tracking-wide text-blue-700 font-semibold">Older Than 180d</p>
+        <p class="text-2xl font-black text-blue-700 mt-1"><?= (int) ($stalePw ?? 0) ?></p>
+        <p class="text-xs text-blue-700/80 mt-1">Rotate old passwords</p>
+      </a>
+
+      <a href="/passwords" class="rounded-xl border border-purple-200 bg-purple-50 p-4 hover:bg-purple-100 transition-colors">
+        <p class="text-[11px] uppercase tracking-wide text-purple-700 font-semibold">Breached</p>
+        <p class="text-2xl font-black text-purple-700 mt-1"><?= (int) ($breachedPw ?? 0) ?></p>
+        <p class="text-xs text-purple-700/80 mt-1">Found in breach datasets</p>
+      </a>
+    </div>
+
+    <div class="mt-4 flex flex-wrap gap-2">
+      <a href="/passwords?strength=weak" class="btn-secondary text-xs py-1.5 px-3">Fix Weak Passwords</a>
+      <a href="/passwords" class="btn-secondary text-xs py-1.5 px-3">Review Reused Passwords</a>
+      <a href="/passwords" class="btn-secondary text-xs py-1.5 px-3">Rotate Old Passwords</a>
+      <a href="/passwords" class="btn-secondary text-xs py-1.5 px-3">Check Breached Passwords</a>
+    </div>
+
+    <?php if (!breachCheckEnabled()): ?>
+    <p class="text-xs text-slate-500 mt-3">Breach monitoring is disabled. Set BREACH_CHECK_ENABLED=true in environment to enable live breach checks.</p>
+    <?php elseif (($breachChecksSkipped ?? 0) > 0): ?>
+    <p class="text-xs text-slate-500 mt-3">Breach scan was partially completed due to API/network limits. Results will improve automatically with cache refresh.</p>
+    <?php endif; ?>
+  </div>
+
   <!-- Alerts -->
   <div class="card p-6">
     <h3 class="font-semibold text-slate-900 mb-4 flex items-center gap-2">

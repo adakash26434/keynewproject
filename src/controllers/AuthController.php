@@ -142,7 +142,7 @@ class AuthController
         Auth::clearAttempts($twoFaKey);
 
         Database::execute(
-            "UPDATE users SET totp_verified = 1, updated_at = datetime('now') WHERE id = ?",
+            'UPDATE users SET totp_verified = 1, updated_at = ' . Database::nowExpression() . ' WHERE id = ?',
             [$user['id']]
         );
 

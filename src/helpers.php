@@ -153,6 +153,45 @@ function daysUntil(?string $date): ?int
     }
 }
 
+function daysSince(?string $date): ?int
+{
+    if (!$date) return null;
+    try {
+        $diff = (new DateTime('today'))->diff(new DateTime($date));
+        return $diff->invert ? $diff->days : -$diff->days;
+    } catch (Exception) {
+        return null;
+    }
+}
+
+function isCommonPassword(string $password): bool
+{
+    $p = strtolower(trim($password));
+    if ($p === '') return false;
+
+    static $common = [
+        '123456', '12345678', '123456789', 'password', 'password123',
+        'qwerty', 'qwerty123', 'abc123', '111111', '123123',
+        '000000', 'admin', 'welcome', 'iloveyou', 'letmein',
+        '1234', '12345', 'qwertyuiop', 'pass@123', 'test123',
+        'khalti123', 'esewa123',
+    ];
+
+    if (in_array($p, $common, true)) {
+        return true;
+    }
+
+    // Basic sequence/repetition patterns often used in breached passwords.
+    if (preg_match('/^(.)\1{5,}$/', $p)) {
+        return true;
+    }
+    if (preg_match('/^(1234|12345|123456|1234567|12345678|1234567890)$/', $p)) {
+        return true;
+    }
+
+    return false;
+}
+
 function expiryStatus(?string $date): string
 {
     $days = daysUntil($date);
@@ -277,4 +316,223 @@ function cacheRemember(string $key, int $ttlSeconds, callable $resolver): mixed
     $value = $resolver();
     cachePut($key, $value);
     return $value;
+}
+
+function breachCheckEnabled(): bool
+{
+    $raw = strtolower(trim((string) getenv('BREACH_CHECK_ENABLED')));
+    return in_array($raw, ['1', 'true', 'yes', 'on'], true);
+}
+
+function pwnedPasswordCount(string $password): ?int
+{
+    if ($password === '') {
+        return 0;
+    }
+
+    if (!breachCheckEnabled()) {
+        return null;
+    }
+
+    $sha1 = strtoupper(sha1($password));
+    $prefix = substr($sha1, 0, 5);
+    $suffix = substr($sha1, 5);
+    $cacheKey = 'hibp:' . $sha1;
+
+    return cacheRemember($cacheKey, 86400, function () use ($prefix, $suffix): ?int {
+        $url = 'https://api.pwnedpasswords.com/range/' . $prefix;
+        $ctx = stream_context_create([
+            'http' => [
+                'method' => 'GET',
+                'timeout' => 4,
+                'ignore_errors' => true,
+                'header' => "User-Agent: KeyWallet/1.0\r\nAdd-Padding: true\r\n",
+            ],
+        ]);
+
+        $resp = @file_get_contents($url, false, $ctx);
+        if ($resp === false || trim($resp) === '') {
+            return null;
+        }
+
+        $lines = preg_split('/\r\n|\r|\n/', trim($resp));
+        if (!is_array($lines)) {
+            return null;
+        }
+
+        foreach ($lines as $line) {
+            $parts = explode(':', trim($line), 2);
+            if (count($parts) !== 2) {
+                continue;
+            }
+
+            if (strtoupper($parts[0]) === $suffix) {
+                return (int) trim($parts[1]);
+            }
+        }
+
+        return 0;
+    });
+}
+
+function alertWebhookUrl(): string
+{
+    return trim((string) getenv('ALERT_WEBHOOK_URL'));
+}
+
+function alertWebhookMode(): string
+{
+    $mode = strtolower(trim((string) getenv('ALERT_WEBHOOK_MODE')));
+    if ($mode === '') {
+        return 'generic';
+    }
+    return $mode;
+}
+
+function sendAlertWebhook(string $title, string $message, array $payload = []): bool
+{
+    $url = alertWebhookUrl();
+    if ($url === '' || !preg_match('#^https?://#i', $url)) {
+        return false;
+    }
+
+    $mode = alertWebhookMode();
+    $bodyData = [
+        'app' => APP_NAME,
+        'title' => $title,
+        'message' => $message,
+        'payload' => $payload,
+        'sent_at' => gmdate('c'),
+    ];
+
+    if ($mode === 'telegram') {
+        $bodyData = [
+            'text' => "*" . APP_NAME . "*\n" . $title . "\n\n" . $message,
+            'parse_mode' => 'Markdown',
+        ];
+    }
+
+    $body = json_encode($bodyData, JSON_UNESCAPED_SLASHES);
+
+    if ($body === false) {
+        return false;
+    }
+
+    $ctx = stream_context_create([
+        'http' => [
+            'method' => 'POST',
+            'timeout' => 3,
+            'ignore_errors' => true,
+            'header' => "Content-Type: application/json\r\n",
+            'content' => $body,
+        ],
+    ]);
+
+    $res = @file_get_contents($url, false, $ctx);
+    return $res !== false;
+}
+
+function enqueueAlertWebhook(string $title, string $message, array $payload = []): void
+{
+    $queue = cacheGet('alert:webhook:queue', 365 * 24 * 3600);
+    if (!is_array($queue)) {
+        $queue = [];
+    }
+
+    $queue[] = [
+        'title' => $title,
+        'message' => $message,
+        'payload' => $payload,
+        'queued_at' => gmdate('c'),
+    ];
+
+    // Bound queue to avoid unbounded growth.
+    if (count($queue) > 30) {
+        $queue = array_slice($queue, -30);
+    }
+
+    cachePut('alert:webhook:queue', $queue);
+}
+
+function flushQueuedAlertWebhooks(int $maxToSend = 5): void
+{
+    $queue = cacheGet('alert:webhook:queue', 365 * 24 * 3600);
+    if (!is_array($queue) || empty($queue)) {
+        return;
+    }
+
+    $remaining = [];
+    $sentCount = 0;
+
+    foreach ($queue as $item) {
+        if (!is_array($item)) {
+            continue;
+        }
+
+        if ($sentCount >= $maxToSend) {
+            $remaining[] = $item;
+            continue;
+        }
+
+        $ok = sendAlertWebhook(
+            (string) ($item['title'] ?? 'Alert'),
+            (string) ($item['message'] ?? ''),
+            is_array($item['payload'] ?? null) ? $item['payload'] : []
+        );
+
+        if ($ok) {
+            $sentCount++;
+            continue;
+        }
+
+        $remaining[] = $item;
+    }
+
+    if (empty($remaining)) {
+        cachePut('alert:webhook:queue', []);
+    } else {
+        cachePut('alert:webhook:queue', $remaining);
+    }
+}
+
+function sendDailySmartAlertDigest(int $userId, array $alerts): void
+{
+    if ($userId <= 0 || empty($alerts)) {
+        return;
+    }
+
+    $dayKey = gmdate('Y-m-d');
+    $cacheKey = 'alert-digest:' . $userId . ':' . $dayKey;
+    if (cacheGet($cacheKey, 86400) !== null) {
+        return;
+    }
+
+    $top = array_slice($alerts, 0, 3);
+    $lines = [];
+    foreach ($top as $a) {
+        if (!is_array($a)) continue;
+        $lines[] = '- ' . ((string) ($a['title'] ?? 'Alert')) . ': ' . ((string) ($a['message'] ?? ''));
+    }
+
+    if (empty($lines)) {
+        return;
+    }
+
+    flushQueuedAlertWebhooks();
+
+    $sent = sendAlertWebhook(
+        'Daily Smart Alerts',
+        implode("\n", $lines),
+        ['user_id' => $userId, 'count' => count($alerts)]
+    );
+
+    if ($sent) {
+        cachePut($cacheKey, ['sent' => true]);
+    } else {
+        enqueueAlertWebhook(
+            'Daily Smart Alerts',
+            implode("\n", $lines),
+            ['user_id' => $userId, 'count' => count($alerts)]
+        );
+    }
 }

@@ -3,7 +3,9 @@
 <head>
 <meta charset="UTF-8">
 <meta name="viewport" content="width=device-width, initial-scale=1.0">
+<meta name="theme-color" content="#0f172a">
 <title><?= e($pageTitle ?? 'Dashboard') ?> — <?= APP_NAME ?></title>
+<link rel="manifest" href="/manifest.webmanifest">
 <link rel="preconnect" href="https://fonts.googleapis.com">
 <link href="https://fonts.googleapis.com/css2?family=Plus+Jakarta+Sans:wght@400;500;600;700&display=swap" rel="stylesheet">
 <script src="https://cdn.tailwindcss.com"></script>
@@ -35,20 +37,70 @@ body { font-family: 'Plus Jakarta Sans', sans-serif; }
 [x-cloak] { display: none !important; }
 </style>
 </head>
-<body class="bg-[#F3F5F7] h-full"
+<body class="bg-slate-100 h-full"
   x-data="{
-    sidebarOpen: true,
+    sidebarOpen: false,
+    isMobile: window.matchMedia('(max-width: 1023px)').matches,
     searchOpen: false,
     searchQuery: '',
     searchResults: [],
+    searchError: '',
     searchLoading: false,
+    pwaPromptEvent: null,
+    showInstallPrompt: false,
+    init() {
+      this.sidebarOpen = !this.isMobile;
+      window.addEventListener('resize', () => {
+        this.isMobile = window.matchMedia('(max-width: 1023px)').matches;
+        if (!this.isMobile) this.sidebarOpen = true;
+      });
+
+      window.addEventListener('beforeinstallprompt', (e) => {
+        e.preventDefault();
+        this.pwaPromptEvent = e;
+        this.showInstallPrompt = true;
+      });
+
+      window.addEventListener('appinstalled', () => {
+        this.showInstallPrompt = false;
+        this.pwaPromptEvent = null;
+      });
+
+      if ('serviceWorker' in navigator) {
+        window.addEventListener('load', () => {
+          navigator.serviceWorker.register('/sw.js').catch(() => null);
+        });
+      }
+    },
+    async installPwa() {
+      if (!this.pwaPromptEvent) return;
+      this.pwaPromptEvent.prompt();
+      const choice = await this.pwaPromptEvent.userChoice;
+      if (choice && choice.outcome) {
+        this.showInstallPrompt = false;
+      }
+      this.pwaPromptEvent = null;
+    },
     async doSearch() {
-      if (this.searchQuery.length < 2) { this.searchResults = []; return; }
+      if (this.searchQuery.length < 2) {
+        this.searchResults = [];
+        this.searchError = '';
+        return;
+      }
       this.searchLoading = true;
+      this.searchError = '';
       try {
         const r = await fetch('/search?q=' + encodeURIComponent(this.searchQuery));
+        if (!r.ok) {
+          this.searchResults = [];
+          this.searchError = r.status === 429 ? 'Too many requests. Please wait a moment.' : 'Search is temporarily unavailable.';
+          return;
+        }
         const d = await r.json();
         this.searchResults = d.results || [];
+      } catch (e) {
+        this.searchResults = [];
+        this.searchError = 'Search is temporarily unavailable.';
       } finally { this.searchLoading = false; }
     }
   }"
@@ -119,8 +171,13 @@ body { font-family: 'Plus Jakarta Sans', sans-serif; }
 </div>
 
 <div class="flex h-screen overflow-hidden">
+  <div x-show="isMobile && sidebarOpen" x-cloak class="fixed inset-0 z-30 bg-slate-900/40" @click="sidebarOpen=false"></div>
+
   <!-- Sidebar -->
-  <aside class="flex-shrink-0 w-60 bg-white border-r border-slate-200 flex flex-col" x-show="sidebarOpen">
+  <aside
+    class="fixed inset-y-0 left-0 z-40 w-60 bg-white border-r border-slate-200 flex flex-col transform transition-transform duration-200 ease-out lg:static lg:translate-x-0 lg:z-auto"
+    :class="sidebarOpen ? 'translate-x-0' : '-translate-x-full lg:translate-x-0'"
+  >
     <!-- Logo -->
     <div class="h-16 flex items-center px-5 border-b border-slate-100">
       <div class="flex items-center gap-2.5">
@@ -195,14 +252,18 @@ body { font-family: 'Plus Jakarta Sans', sans-serif; }
   </aside>
 
   <!-- Main area -->
-  <div class="flex-1 flex flex-col overflow-hidden">
+  <div class="flex-1 flex flex-col overflow-hidden lg:ml-0">
     <!-- Top bar -->
     <header class="h-16 bg-white border-b border-slate-200 flex items-center px-6 gap-4 flex-shrink-0">
-      <button @click="sidebarOpen = !sidebarOpen" class="p-1.5 rounded-lg hover:bg-slate-100 text-slate-500">
+      <button @click="sidebarOpen = !sidebarOpen" class="p-1.5 rounded-lg hover:bg-slate-100 text-slate-500" aria-label="Toggle navigation">
         <svg class="w-5 h-5" fill="none" viewBox="0 0 24 24" stroke="currentColor"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M4 6h16M4 12h16M4 18h16"/></svg>
       </button>
       <h1 class="text-base font-bold text-slate-900"><?= e($pageTitle ?? '') ?></h1>
       <div class="ml-auto flex items-center gap-2">
+        <button x-show="showInstallPrompt" x-cloak @click="installPwa()"
+          class="hidden sm:inline-flex items-center gap-2 px-3 py-1.5 text-xs font-semibold text-emerald-700 bg-emerald-50 hover:bg-emerald-100 rounded-lg transition-colors">
+          Install App
+        </button>
         <!-- Search button -->
         <button @click="searchOpen=true"
           class="flex items-center gap-2 px-3 py-1.5 text-sm text-slate-400 bg-slate-100 hover:bg-slate-200 rounded-lg transition-colors">
@@ -213,6 +274,16 @@ body { font-family: 'Plus Jakarta Sans', sans-serif; }
         <span class="text-xs text-slate-400 hidden md:block"><?= date('D, M j Y') ?></span>
       </div>
     </header>
+
+    <!-- Quick actions -->
+    <div class="px-6 pt-4 pb-1">
+      <div class="flex flex-wrap gap-2">
+        <a href="/passwords" class="btn-secondary text-xs px-3 py-1.5">+ Password</a>
+        <a href="/documents" class="btn-secondary text-xs px-3 py-1.5">+ Document</a>
+        <a href="/tasks" class="btn-secondary text-xs px-3 py-1.5">+ Task</a>
+        <a href="/finance" class="btn-secondary text-xs px-3 py-1.5">+ Finance Entry</a>
+      </div>
+    </div>
 
     <!-- Flash messages -->
     <?php $success = getFlash('success'); $error = getFlash('error'); ?>
@@ -234,6 +305,10 @@ body { font-family: 'Plus Jakarta Sans', sans-serif; }
       <?php endif; ?>
     </div>
     <?php endif; ?>
+
+    <div x-show="searchError && searchOpen" x-cloak class="fixed top-4 right-4 z-[60] bg-amber-50 border border-amber-200 text-amber-800 px-3 py-2 rounded-lg text-xs shadow">
+      <span x-text="searchError"></span>
+    </div>
 
     <!-- Page content -->
     <main class="flex-1 overflow-y-auto p-6">

@@ -46,9 +46,30 @@ function preflightChecks(): array
 {
     $errors = [];
 
-    if (!extension_loaded('pdo_sqlite')) {
+    $driver = strtolower(trim((string) getenv('DB_DRIVER')));
+    if ($driver === '') {
+        $driver = 'sqlite';
+    }
+
+    if (!in_array($driver, ['sqlite', 'mysql'], true)) {
+        $errors[] = 'Invalid DB_DRIVER. Supported values: sqlite, mysql.';
+    }
+
+    if ($driver === 'sqlite' && !extension_loaded('pdo_sqlite')) {
         $errors[] = 'Missing required PHP extension: pdo_sqlite.';
     }
+    if ($driver === 'mysql' && !extension_loaded('pdo_mysql')) {
+        $errors[] = 'Missing required PHP extension: pdo_mysql.';
+    }
+    if ($driver === 'mysql') {
+        $requiredMysqlEnv = ['DB_HOST', 'DB_NAME', 'DB_USER'];
+        foreach ($requiredMysqlEnv as $envKey) {
+            if (trim((string) getenv($envKey)) === '') {
+                $errors[] = 'Missing required MySQL environment variable: ' . $envKey;
+            }
+        }
+    }
+
     if (!extension_loaded('openssl')) {
         $errors[] = 'Missing required PHP extension: openssl.';
     }

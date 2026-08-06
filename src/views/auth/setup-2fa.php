@@ -45,9 +45,12 @@
           <p class="text-sm font-semibold text-slate-900 mb-3">Scan this QR code</p>
           <div class="flex justify-center">
             <div class="bg-white p-3 rounded-xl border-2 border-slate-200">
-              <canvas id="qrcode" class="w-40 h-40"></canvas>
+              <canvas id="qrcode" class="w-40 h-40 hidden" aria-label="TOTP QR code"></canvas>
+              <img id="qrcodeFallback" class="w-40 h-40 hidden" alt="TOTP QR code fallback"
+                src="https://api.qrserver.com/v1/create-qr-code/?size=220x220&data=<?= rawurlencode($qrUri) ?>">
             </div>
           </div>
+          <p id="qrHint" class="text-xs text-slate-500 text-center mt-2 hidden"></p>
           <details class="mt-3">
             <summary class="text-xs text-slate-500 cursor-pointer hover:text-slate-700">Can't scan? Enter manually</summary>
             <div class="mt-2 bg-slate-50 rounded-lg p-3">
@@ -81,10 +84,41 @@
 </div>
 
 <script>
-QRCode.toCanvas(document.getElementById('qrcode'), <?= json_encode($qrUri) ?>, {
-  width: 160, margin: 1,
-  color: { dark: '#0f172a', light: '#ffffff' }
-}, function(err) { if (err) console.error(err); });
+  (function () {
+    var qrValue = <?= json_encode($qrUri) ?>;
+    var canvas = document.getElementById('qrcode');
+    var fallback = document.getElementById('qrcodeFallback');
+    var hint = document.getElementById('qrHint');
+
+    function showFallback(message) {
+      if (canvas) canvas.classList.add('hidden');
+      if (fallback) fallback.classList.remove('hidden');
+      if (hint && message) {
+        hint.textContent = message;
+        hint.classList.remove('hidden');
+      }
+    }
+
+    if (!window.QRCode || typeof window.QRCode.toCanvas !== 'function') {
+      showFallback('Auto QR renderer failed to load. Showing backup QR image.');
+      return;
+    }
+
+    window.QRCode.toCanvas(canvas, qrValue, {
+      width: 160,
+      margin: 1,
+      color: { dark: '#0f172a', light: '#ffffff' }
+    }, function (err) {
+      if (err) {
+        console.error(err);
+        showFallback('Could not render canvas QR. Showing backup QR image.');
+        return;
+      }
+      canvas.classList.remove('hidden');
+      if (fallback) fallback.classList.add('hidden');
+      if (hint) hint.classList.add('hidden');
+    });
+  })();
 </script>
 </body>
 </html>

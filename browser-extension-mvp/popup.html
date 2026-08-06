@@ -1,0 +1,58 @@
+<!doctype html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>Key Wallet</title>
+  <link rel="stylesheet" href="styles.css">
+</head>
+<body>
+  <main class="wrap">
+    <h1>Key Wallet</h1>
+
+    <label class="lbl" for="baseUrl">Vault URL</label>
+    <input id="baseUrl" type="url" placeholder="https://yourdomain.com" />
+
+    <label class="lbl" for="query">Quick Search</label>
+    <input id="query" type="text" placeholder="gmail, esewa, bank..." />
+
+    <div class="row">
+      <button id="openDashboard">Dashboard</button>
+      <button id="openPasswords" class="alt">Passwords</button>
+    </div>
+
+    <div class="row">
+      <button id="runSearch" class="full">Open Search</button>
+    </div>
+
+    <div class="row">
+      <button id="searchVault" class="full alt">Find Credentials</button>
+    </div>
+
+    <div id="results" class="results"></div>
+
+    <div class="safety">
+      <label class="chk">
+        <input id="exactDomainOnly" type="checkbox" checked>
+        Exact domain results only
+      </label>
+      <button id="toggleBlockDomain" class="full alt">Block/Unblock Current Domain</button>
+      <p id="domainInfo" class="mini"></p>
+    </div>
+
+    <hr>
+
+    <label class="lbl" for="genLen">Password Generator</label>
+    <div class="row">
+      <input id="genLen" type="number" min="12" max="64" value="16" />
+      <button id="generate" class="alt">Generate</button>
+    </div>
+
+    <textarea id="generated" rows="2" readonly placeholder="Generated password appears here"></textarea>
+    <button id="copyGenerated" class="full">Copy Password</button>
+
+    <p id="status" class="status"></p>
+  </main>
+  <script src="popup.js"></script>
+</body>
+</html>

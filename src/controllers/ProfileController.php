@@ -29,7 +29,7 @@ class ProfileController
         }
 
         Database::execute(
-            "UPDATE users SET name=?, bio=?, phone=?, location=?, updated_at=datetime('now') WHERE id=?",
+            'UPDATE users SET name=?, bio=?, phone=?, location=?, updated_at=' . Database::nowExpression() . ' WHERE id=?',
             [$name, $bio, $phone, $location, $uid]
         );
 
@@ -75,7 +75,7 @@ class ProfileController
         $newHash = Auth::hashPassword($new);
 
         Database::execute(
-            "UPDATE users SET password_hash=?, updated_at=datetime('now') WHERE id=?",
+            'UPDATE users SET password_hash=?, updated_at=' . Database::nowExpression() . ' WHERE id=?',
             [$newHash, $uid]
         );
 

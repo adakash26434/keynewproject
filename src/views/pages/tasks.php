@@ -20,6 +20,13 @@
         <option value="medium" <?= $priority==='medium'?'selected':'' ?>>Medium</option>
         <option value="low" <?= $priority==='low'?'selected':'' ?>>Low</option>
       </select>
+      <select onchange="window.location='/tasks?filter=<?= urlencode($filter) ?><?= $priority ? '&priority='.urlencode($priority) : '' ?>&category='+encodeURIComponent(this.value)" class="text-sm border border-slate-300 rounded-lg px-2 py-1.5 bg-white text-slate-600 focus:outline-none">
+        <option value="">All categories</option>
+        <?php foreach ($categories as $c): ?>
+        <?php $catValue = (string) ($c['category'] ?? ''); if ($catValue === '') continue; ?>
+        <option value="<?= e($catValue) ?>" <?= $category === $catValue ? 'selected' : '' ?>><?= e($catValue) ?></option>
+        <?php endforeach; ?>
+      </select>
     </div>
     <button @click="openAdd()" class="btn-primary whitespace-nowrap">
       <svg class="w-4 h-4" fill="none" viewBox="0 0 24 24" stroke="currentColor"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M12 4v16m8-8H4"/></svg>
@@ -77,7 +84,7 @@
         </div>
 
         <!-- Actions -->
-        <div class="flex items-center gap-1 opacity-0 group-hover:opacity-100 transition-opacity flex-shrink-0">
+        <div class="flex items-center gap-1 opacity-100 md:opacity-0 md:group-hover:opacity-100 transition-opacity flex-shrink-0">
           <button @click="openEdit(<?= htmlspecialchars(json_encode($task), ENT_QUOTES) ?>)" class="p-1.5 text-slate-400 hover:text-slate-700 hover:bg-slate-100 rounded-lg transition-colors">
             <svg class="w-4 h-4" fill="none" viewBox="0 0 24 24" stroke="currentColor"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M11 5H6a2 2 0 00-2 2v11a2 2 0 002 2h11a2 2 0 002-2v-5m-1.414-9.414a2 2 0 112.828 2.828L11.828 15H9v-2.828l8.586-8.586z"/></svg>
           </button>
