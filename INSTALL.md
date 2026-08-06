@@ -6,6 +6,11 @@
 - OpenSSL extension (enabled by default)
 - mbstring extension (enabled by default)
 
+## Database Setup (Important)
+- No manual database setup is required.
+- The app automatically creates `data/wallet.db` and all required tables on first request.
+- You only need correct write permission on `data/`.
+
 ## Deployment Steps
 
 ### Option A (Recommended): Use repo `public_html/` as web root
@@ -51,3 +56,10 @@ If not set, the app auto-generates and stores an encryption key in `data/.encryp
 3. Scan the QR code with Google Authenticator
 4. Enter the 6-digit code to enable 2FA
 5. You're in!
+
+## Quick Troubleshooting
+- If you see a 500 setup error, check:
+	1. `pdo_sqlite` extension is enabled.
+	2. `openssl` extension is enabled.
+	3. `data/` is writable (`chmod 700 data`).
+- If you see 403, confirm your subdomain document root points to the correct folder and `.htaccess` is present.
