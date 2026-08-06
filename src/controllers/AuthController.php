@@ -186,4 +186,14 @@ class AuthController
         Auth::logout();
         redirect('/login');
     }
+
+    public static function logoutAll(): void
+    {
+        Auth::requireAuth();
+        Auth::verifyCsrf();
+
+        Auth::revokeAllSessions(userId());
+        Auth::logout();
+        redirect('/login');
+    }
 }

@@ -7,9 +7,9 @@ class ProfileController
         $uid = userId();
         $user = Database::fetch('SELECT * FROM users WHERE id = ?', [$uid]);
         $sessions = Auth::loginSessions($uid, 10);
-        $currentSessionToken = (string) ($_SESSION['login_session_token'] ?? '');
+        $currentSessionId = Auth::currentLoginSessionId();
         $pageTitle = 'Profile';
-        view('pages/profile', compact('user', 'sessions', 'currentSessionToken', 'pageTitle'));
+        view('pages/profile', compact('user', 'sessions', 'currentSessionId', 'pageTitle'));
     }
 
     public static function update(): void
@@ -73,6 +73,33 @@ class ProfileController
         );
 
         flash('success', 'Password changed successfully.');
+        redirect('/profile');
+    }
+
+    public static function revokeSession(array $params): void
+    {
+        Auth::requireAuth();
+        Auth::verifyCsrf();
+
+        $uid = userId();
+        $sessionId = (int) ($params['id'] ?? 0);
+
+        if ($sessionId <= 0) {
+            flash('error', 'Invalid session selected.');
+            redirect('/profile');
+        }
+
+        if ($sessionId === Auth::currentLoginSessionId()) {
+            flash('error', 'Current session cannot be revoked from this action.');
+            redirect('/profile');
+        }
+
+        if (Auth::revokeSessionById($uid, $sessionId)) {
+            flash('success', 'Selected session has been signed out.');
+        } else {
+            flash('error', 'Session not found or already revoked.');
+        }
+
         redirect('/profile');
     }
 }

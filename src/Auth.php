@@ -120,9 +120,15 @@ class Auth
     public static function logout(): void
     {
         $userId = (int) ($_SESSION['user_id'] ?? 0);
+        $sessionId = (int) ($_SESSION['login_session_id'] ?? 0);
         $sessionToken = (string) ($_SESSION['login_session_token'] ?? '');
 
-        if ($userId > 0 && $sessionToken !== '') {
+        if ($userId > 0 && $sessionId > 0) {
+            Database::execute(
+                'DELETE FROM login_sessions WHERE user_id = ? AND id = ?',
+                [$userId, $sessionId]
+            );
+        } elseif ($userId > 0 && $sessionToken !== '') {
             Database::execute(
                 'DELETE FROM login_sessions WHERE user_id = ? AND session_token = ?',
                 [$userId, $sessionToken]
@@ -140,13 +146,44 @@ class Auth
     public static function loginSessions(int $userId, int $limit = 8): array
     {
         return Database::fetchAll(
-            'SELECT session_token, user_agent, ip_address, created_at, last_active
+            'SELECT id, session_token, user_agent, ip_address, created_at, last_active
              FROM login_sessions
              WHERE user_id = ?
              ORDER BY last_active DESC
              LIMIT ' . (int) max(1, min($limit, 20)),
             [$userId]
         );
+    }
+
+    public static function currentLoginSessionId(): int
+    {
+        return (int) ($_SESSION['login_session_id'] ?? 0);
+    }
+
+    public static function revokeSessionById(int $userId, int $sessionId): bool
+    {
+        if ($userId <= 0 || $sessionId <= 0) {
+            return false;
+        }
+
+        $currentSessionId = self::currentLoginSessionId();
+        if ($currentSessionId > 0 && $currentSessionId === $sessionId) {
+            return false;
+        }
+
+        return Database::execute(
+            'DELETE FROM login_sessions WHERE user_id = ? AND id = ?',
+            [$userId, $sessionId]
+        ) > 0;
+    }
+
+    public static function revokeAllSessions(int $userId): void
+    {
+        if ($userId <= 0) {
+            return;
+        }
+
+        Database::execute('DELETE FROM login_sessions WHERE user_id = ?', [$userId]);
     }
 
     private static function registerLoginSession(int $userId): void
@@ -168,11 +205,14 @@ class Auth
                 substr(self::clientIp(), 0, 100),
             ]
         );
+
+        $_SESSION['login_session_id'] = (int) Database::lastInsertId();
     }
 
     private static function validateAndTouchLoginSession(): void
     {
         $userId = (int) ($_SESSION['user_id'] ?? 0);
+        $sessionId = (int) ($_SESSION['login_session_id'] ?? 0);
         $token  = (string) ($_SESSION['login_session_token'] ?? '');
 
         if ($userId <= 0 || $token === '') {
@@ -180,20 +220,38 @@ class Auth
             redirect('/login');
         }
 
-        $row = Database::fetch(
-            'SELECT id FROM login_sessions WHERE user_id = ? AND session_token = ? LIMIT 1',
-            [$userId, $token]
-        );
+        if ($sessionId > 0) {
+            $row = Database::fetch(
+                'SELECT id FROM login_sessions WHERE user_id = ? AND id = ? AND session_token = ? LIMIT 1',
+                [$userId, $sessionId, $token]
+            );
+        } else {
+            $row = Database::fetch(
+                'SELECT id FROM login_sessions WHERE user_id = ? AND session_token = ? LIMIT 1',
+                [$userId, $token]
+            );
+            if ($row) {
+                $_SESSION['login_session_id'] = (int) $row['id'];
+                $sessionId = (int) $row['id'];
+            }
+        }
 
         if (!$row) {
             self::logout();
             redirect('/login');
         }
 
-        Database::execute(
-            'UPDATE login_sessions SET last_active = datetime(\'now\') WHERE user_id = ? AND session_token = ?',
-            [$userId, $token]
-        );
+        if ($sessionId > 0) {
+            Database::execute(
+                'UPDATE login_sessions SET last_active = datetime(\'now\') WHERE user_id = ? AND id = ?',
+                [$userId, $sessionId]
+            );
+        } else {
+            Database::execute(
+                'UPDATE login_sessions SET last_active = datetime(\'now\') WHERE user_id = ? AND session_token = ?',
+                [$userId, $token]
+            );
+        }
     }
 
     public static function hashPassword(string $password): string

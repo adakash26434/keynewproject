@@ -42,6 +42,7 @@ $router->post('/setup-2fa', [AuthController::class, 'handleSetup2fa']);
 $router->get('/verify-2fa', [AuthController::class, 'showVerify2fa']);
 $router->post('/verify-2fa',[AuthController::class, 'handleVerify2fa']);
 $router->post('/logout',    [AuthController::class, 'logout']);
+$router->post('/logout-all',[AuthController::class, 'logoutAll']);
 $router->get('/logout',     fn() => redirect('/dashboard'));
 
 // ── Dashboard & Insights ─────────────────────────────────────────────────────
@@ -83,6 +84,7 @@ $router->post('/cv', [CVController::class, 'save']);
 $router->get('/profile',           [ProfileController::class, 'index']);
 $router->post('/profile',          [ProfileController::class, 'update']);
 $router->post('/profile/password', [ProfileController::class, 'changePassword']);
+$router->post('/profile/sessions/{id}/revoke', [ProfileController::class, 'revokeSession']);
 
 // ── Global Search (JSON) ──────────────────────────────────────────────────────
 $router->get('/search', [SearchController::class, 'search']);
