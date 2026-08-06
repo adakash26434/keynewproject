@@ -86,7 +86,7 @@ tailwind.config = {
     async shareCurrentPage() {
       const payload = {
         title: document.title,
-        text: 'Check this page on ' + <?= json_encode($siteName) ?>,
+        text: 'Check this page on ' + <?= htmlspecialchars(json_encode($siteName), ENT_QUOTES | ENT_HTML5, 'UTF-8') ?>,
         url: window.location.href,
       };
 
