@@ -99,6 +99,9 @@ class AuthController
         );
 
         $user = Database::fetch('SELECT * FROM users WHERE email = ?', [$email]);
+        if ($user) {
+            Auth::recordPasswordHistory((int) $user['id'], (string) $user['password_hash']);
+        }
         Auth::login($user);
 
         unset($_SESSION['_old']);

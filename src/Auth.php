@@ -264,6 +264,56 @@ class Auth
         return password_verify($password, $hash);
     }
 
+    public static function isPasswordReused(int $userId, string $newPassword, int $historyLimit = 3): bool
+    {
+        if ($userId <= 0 || $newPassword === '') {
+            return false;
+        }
+
+        $current = Database::fetch('SELECT password_hash FROM users WHERE id = ?', [$userId]);
+        if ($current && self::verifyPassword($newPassword, (string) $current['password_hash'])) {
+            return true;
+        }
+
+        $limit = (int) max(1, min($historyLimit, 10));
+        $rows = Database::fetchAll(
+            'SELECT password_hash FROM password_history WHERE user_id = ? ORDER BY created_at DESC, id DESC LIMIT ' . $limit,
+            [$userId]
+        );
+
+        foreach ($rows as $row) {
+            if (self::verifyPassword($newPassword, (string) $row['password_hash'])) {
+                return true;
+            }
+        }
+
+        return false;
+    }
+
+    public static function recordPasswordHistory(int $userId, string $passwordHash, int $keep = 5): void
+    {
+        if ($userId <= 0 || $passwordHash === '') {
+            return;
+        }
+
+        Database::execute(
+            'INSERT INTO password_history (user_id, password_hash) VALUES (?, ?)',
+            [$userId, $passwordHash]
+        );
+
+        $keepCount = (int) max(3, min($keep, 20));
+        Database::execute(
+            'DELETE FROM password_history
+             WHERE user_id = ? AND id NOT IN (
+                SELECT id FROM password_history
+                WHERE user_id = ?
+                ORDER BY created_at DESC, id DESC
+                LIMIT ' . $keepCount . '
+             )',
+            [$userId, $userId]
+        );
+    }
+
     public static function csrfToken(): string
     {
         if (!isset($_SESSION['csrf_token'])) {

@@ -67,10 +67,19 @@ class ProfileController
             redirect('/profile');
         }
 
+        if (Auth::isPasswordReused($uid, $new, 3)) {
+            flash('error', 'You cannot reuse your recent passwords. Please choose a different one.');
+            redirect('/profile');
+        }
+
+        $newHash = Auth::hashPassword($new);
+
         Database::execute(
             "UPDATE users SET password_hash=?, updated_at=datetime('now') WHERE id=?",
-            [Auth::hashPassword($new), $uid]
+            [$newHash, $uid]
         );
+
+        Auth::recordPasswordHistory($uid, $newHash);
 
         flash('success', 'Password changed successfully.');
         redirect('/profile');
