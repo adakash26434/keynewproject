@@ -16,13 +16,14 @@ class Router
     public function run(): void
     {
         $method = $_SERVER['REQUEST_METHOD'];
+        $effectiveMethod = $method === 'HEAD' ? 'GET' : $method;
         $uri    = parse_url($_SERVER['REQUEST_URI'], PHP_URL_PATH);
         $uri    = '/' . trim($uri, '/');
         if ($uri === '//') $uri = '/';
 
         foreach ($this->routes as [$routeMethod, $routePath, $handler]) {
-            if ($method !== $routeMethod && !($method === 'POST' && $routeMethod === 'POST')) {
-                if ($method !== $routeMethod) continue;
+            if ($effectiveMethod !== $routeMethod && !($effectiveMethod === 'POST' && $routeMethod === 'POST')) {
+                if ($effectiveMethod !== $routeMethod) continue;
             }
 
             $pattern = $this->compilePath($routePath);
