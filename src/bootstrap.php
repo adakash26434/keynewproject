@@ -85,6 +85,8 @@ $router->get('/profile',           [ProfileController::class, 'index']);
 $router->post('/profile',          [ProfileController::class, 'update']);
 $router->post('/profile/password', [ProfileController::class, 'changePassword']);
 $router->post('/profile/sessions/{id}/revoke', [ProfileController::class, 'revokeSession']);
+$router->post('/profile/backup/export', [ProfileController::class, 'exportBackup']);
+$router->post('/profile/backup/import', [ProfileController::class, 'importBackup']);
 
 // ── Global Search (JSON) ──────────────────────────────────────────────────────
 $router->get('/search', [SearchController::class, 'search']);

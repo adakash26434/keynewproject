@@ -181,6 +181,32 @@
     <?php endif; ?>
   </div>
 
+  <!-- Backup & Restore -->
+  <div class="card p-6">
+    <h3 class="font-semibold text-slate-900 mb-4 flex items-center gap-2">
+      <svg class="w-4 h-4 text-slate-500" fill="none" viewBox="0 0 24 24" stroke="currentColor"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M3 7a2 2 0 012-2h3.28a1 1 0 00.948-.684l.498-1.438A1 1 0 0110.674 2h2.652a1 1 0 01.948.684l.498 1.438A1 1 0 0015.72 5H19a2 2 0 012 2v3m-1 4v5a2 2 0 01-2 2H6a2 2 0 01-2-2v-5m16 0h-3m-10 0H4m8 0v6m0-6l-2.5 2.5M12 14l2.5 2.5"/></svg>
+      Backup & Restore
+    </h3>
+    <p class="text-sm text-slate-500 mb-4">Export an encrypted backup of your vault data or restore from a previously exported backup file.</p>
+
+    <div class="grid sm:grid-cols-2 gap-3">
+      <form method="POST" action="/profile/backup/export" class="p-3 bg-slate-50 rounded-xl border border-slate-100">
+        <?= csrf() ?>
+        <p class="text-sm font-medium text-slate-900 mb-1">Export Backup</p>
+        <p class="text-xs text-slate-500 mb-3">Downloads encrypted `.kwb` file of your current data.</p>
+        <button type="submit" class="btn-secondary w-full justify-center">Download Backup</button>
+      </form>
+
+      <form method="POST" action="/profile/backup/import" enctype="multipart/form-data" class="p-3 bg-amber-50 rounded-xl border border-amber-100" onsubmit="return confirm('Restore will replace your current vault data. Continue?');">
+        <?= csrf() ?>
+        <p class="text-sm font-medium text-slate-900 mb-1">Restore Backup</p>
+        <p class="text-xs text-slate-500 mb-3">Import previously exported `.kwb` file. Existing data will be replaced.</p>
+        <input type="file" name="backup_file" accept=".kwb,.txt,application/octet-stream" required class="block w-full text-xs text-slate-700 mb-3">
+        <button type="submit" class="btn-danger w-full justify-center">Restore Now</button>
+      </form>
+    </div>
+  </div>
+
   <!-- Danger Zone -->
   <div class="card p-6 border-red-200">
     <h3 class="font-semibold text-red-700 mb-3 flex items-center gap-2">
