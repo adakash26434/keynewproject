@@ -133,6 +133,14 @@ $catColors = ['Digital Wallet'=>'bg-green-100 text-green-700','Banking'=>'bg-blu
         <?php
           $sc = $strengthColors[$pw['strength']] ?? 'bg-slate-100 text-slate-600';
           $cc = $catColors[$pw['category']] ?? 'bg-slate-100 text-slate-600';
+          $rawUrl = trim((string) ($pw['url'] ?? ''));
+          $openUrl = '';
+          if ($rawUrl !== '') {
+            $candidate = preg_match('#^https?://#i', $rawUrl) ? $rawUrl : ('https://' . ltrim($rawUrl, '/'));
+            if (filter_var($candidate, FILTER_VALIDATE_URL)) {
+              $openUrl = $candidate;
+            }
+          }
         ?>
         <tr class="hover:bg-slate-50 transition-colors">
           <td class="px-4 py-3">
@@ -142,7 +150,17 @@ $catColors = ['Digital Wallet'=>'bg-green-100 text-green-700','Banking'=>'bg-blu
               </div>
               <div>
                 <p class="font-medium text-slate-900"><?= e($pw['title']) ?></p>
-                <?php if ($pw['url']): ?><p class="text-xs text-slate-400 truncate max-w-[140px]"><?= e($pw['url']) ?></p><?php endif; ?>
+                <?php if ($rawUrl !== ''): ?>
+                <p class="text-xs truncate max-w-[220px]">
+                  <?php if ($openUrl !== ''): ?>
+                  <a href="<?= e($openUrl) ?>" target="_blank" rel="noopener noreferrer" class="text-blue-600 hover:text-blue-700 hover:underline" title="Open <?= e($rawUrl) ?>">
+                    <?= e($rawUrl) ?>
+                  </a>
+                  <?php else: ?>
+                  <span class="text-slate-400" title="Invalid URL format"><?= e($rawUrl) ?></span>
+                  <?php endif; ?>
+                </p>
+                <?php endif; ?>
               </div>
             </div>
           </td>

@@ -128,6 +128,12 @@
         Allow new user signup
       </label>
       <p class="text-xs text-slate-500 mt-1">Turn off to make the system invite-only while owner accounts continue to work.</p>
+
+      <label class="inline-flex items-center gap-2 text-sm font-medium text-slate-700 mt-4">
+        <input type="checkbox" name="allow_share" value="1" <?= (($settings['allow_share'] ?? '1') !== '0') ? 'checked' : '' ?>>
+        Show topbar share button
+      </label>
+      <p class="text-xs text-slate-500 mt-1">If off, share action is hidden for all users.</p>
     </div>
 
     <div class="flex items-center justify-between pt-2">

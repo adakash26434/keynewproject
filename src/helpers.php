@@ -545,6 +545,7 @@ function siteSettingsDefaults(): array
         'logo_url' => '',
         'support_email' => '',
         'allow_signup' => '1',
+        'allow_share' => '1',
         'maintenance_notice' => '',
     ];
 }
@@ -613,4 +614,9 @@ function setSiteSetting(string $key, string $value): bool
 function isSignupAllowed(): bool
 {
     return siteSetting('allow_signup', '1') !== '0';
+}
+
+function isShareEnabled(): bool
+{
+    return siteSetting('allow_share', '1') !== '0';
 }

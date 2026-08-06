@@ -20,6 +20,7 @@ class AdminController
         $logoUrl = trim((string) input('logo_url', ''));
         $supportEmail = strtolower(trim((string) input('support_email', '')));
         $allowSignup = input('allow_signup', '0') === '1' ? '1' : '0';
+        $allowShare = input('allow_share', '0') === '1' ? '1' : '0';
         $maintenanceNotice = trim((string) input('maintenance_notice', ''));
 
         if ($siteName === '') {
@@ -47,6 +48,7 @@ class AdminController
         setSiteSetting('logo_url', $logoUrl);
         setSiteSetting('support_email', $supportEmail);
         setSiteSetting('allow_signup', $allowSignup);
+        setSiteSetting('allow_share', $allowShare);
         setSiteSetting('maintenance_notice', $maintenanceNotice);
 
         flash('success', 'Site settings updated successfully.');

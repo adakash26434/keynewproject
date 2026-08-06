@@ -9,6 +9,7 @@
   $siteTagline = siteSetting('site_tagline', 'Your secure digital vault');
   $siteLogoUrl = siteSetting('logo_url', '');
   $maintenanceNotice = siteSetting('maintenance_notice', '');
+  $allowShare = isShareEnabled();
 ?>
 <title><?= e($pageTitle ?? 'Dashboard') ?> — <?= e($siteName) ?></title>
 <link rel="manifest" href="/manifest.webmanifest">
@@ -306,11 +307,13 @@ tailwind.config = {
           <?= e($maintenanceNotice) ?>
         </span>
         <?php endif; ?>
+        <?php if ($allowShare): ?>
         <button @click="shareCurrentPage()"
           class="hidden sm:inline-flex items-center gap-2 px-3 py-1.5 text-xs font-semibold text-slate-700 bg-slate-100 hover:bg-slate-200 rounded-lg transition-colors">
           <i data-lucide="share-2" class="icon-16"></i>
           Share
         </button>
+        <?php endif; ?>
         <button x-show="showInstallPrompt" x-cloak @click="installPwa()"
           class="hidden sm:inline-flex items-center gap-2 px-3 py-1.5 text-xs font-semibold text-emerald-700 bg-emerald-50 hover:bg-emerald-100 rounded-lg transition-colors">
           Install App
